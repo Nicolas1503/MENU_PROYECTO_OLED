@@ -16,14 +16,14 @@
 #define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
 
 /*Matriz de dos dimensiones para definir los menues*/
-const char menu[MAINMENU_NUM][MAXITEMS] = {"Ajustes","Medicion","Ult. Medidas"};
-const char ajustes[AJUSTES_NUM][MAXITEMS] = {"Config.   Helices","Config.   Periodo","Ref. Lugar","Cfg. Date","Buzzer","Atras"};
+const char menu[MAINMENU_NUM][MAXITEMS] = {"Ajustes","Medicion","Ultimas   Medidas"};
+const char ajustes[AJUSTES_NUM][MAXITEMS] = {"Config.   Helices","Config.   Periodo","Ref. de    Lugar","Fecha y     Hora","Buzzer","Atras"};
 const char medicion[MEDICION_NUM][MAXITEMS] = {"Inicio","Atras"};
 
 /*Definicion de menues, submenues y acciones*/
 
-#define	OUT 0
-#define AJUSTES 1
+#define	OUT 1
+#define AJUSTES 2
 #define MEDICION 3
 #define ULT_MEDIDAS 4
 #define CFG_HELICES 5
@@ -180,13 +180,13 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 		if (buttonProcess == DOWN){					//Si el boton fue DOWN 
 			if(estado_actual != lastMenu)			//Si el estado actual es distinto de el ultimo item del menu se suma uno
 			{
-				estado_actual = estado_actual + OUT;
+				estado_actual = estado_actual + 1;
 			}
 		}
 		else if (buttonProcess == UP){				//Si el boton fue UP 
 			if(estado_actual != firstMenu)			//Si el estado actual es distinto del primer item del menu se resta uno
 		 	{
-				estado_actual = estado_actual - OUT;
+				estado_actual = estado_actual - 1;
 			}
 		}
 		else if (buttonProcess == ENTER)		 	//Si se aprieta el boton enter se chequea en que estado esta
@@ -422,6 +422,7 @@ void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				display.setTextSize(2);      // establece tamano de texto en 2
   				display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
 				display.print("T = ");
+				display.display();
 				{
 					//Parte en que se cuentan los pulsos 
 				}
