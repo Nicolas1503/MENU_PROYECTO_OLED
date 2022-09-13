@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "button.hpp"
+#include "SPI.h"
 #include <Wire.h> 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH1106.h>
@@ -69,7 +70,7 @@ typedef enum{
 
 /*Definicion de pines*/
 const bool pullup = true;
-const int up_button = 2;
+const int up_button = 18;
 const int down_button = 4;
 const int enter_button = 5;
 move_t buttonProcess = DONTMOVE;
@@ -415,22 +416,68 @@ void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		case TOMAR_MEDICION:
 		{
 			move_t buttonProcess = DONTMOVE;
+			bool buttonOut = 1;
 			while(buttonProcess != ENTER)					//Me aparto del codigo principal mientras el boton sea distinto de enter
 			{
+				float dotcount = 1000.0;
+				uint8_t dotiter = 0;
+
 				display.clearDisplay();
 				display.setCursor(0,0);
 				display.setTextSize(2);      // establece tamano de texto en 2
   				display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
 				display.print("T = ");
+				float periodo = 7500;
+				display.setCursor(40,0);
+				display.print(periodo/1000); //Convierto de milisegundos a segundos
+				display.print("sec");
 				display.display();
+				
+				unsigned long lastmillis = millis();
+				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
+				
+				while(buttonOut)
 				{
-					//Parte en que se cuentan los pulsos 
+					if (CheckButton() != ENTER)
+					{
+						timedone = millis() - lastmillis;
+						if(timedone >= periodo)
+						{
+							buttonOut = 0;
+						}
+					}
+					else{
+						buttonOut = 0;
+					}
+					
+					/* 	Muestra un punto cada 1 segundo transcurrido
+						Esto es solo un ejemplo */
+					if(timedone == dotcount)
+					{
+						display.setCursor(dotiter,17);
+						display.setTextSize(2);      // establece tamano de texto en 2
+  						display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+						display.print(".");
+						display.display();
+						dotcount = dotcount + 1000.0;
+						if(dotiter < 64)
+						{
+							dotiter= dotiter+1;
+						}
+						else{
+							lcd_ClearOneLine(1);
+							dotiter = 0;
+						}
+					}
 				}
+				
 				buttonProcess = ENTER;						//Sirve para volver hacia el while
 			}
 			estado_actual = INICIO_MEDICION;				//Se vuelve a la pantalla anterior 
+			
 		}
 		break;
 	}
 }
+
 
