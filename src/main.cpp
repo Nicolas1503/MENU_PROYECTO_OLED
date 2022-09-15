@@ -17,9 +17,9 @@
 #define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
 
 /*Matriz de dos dimensiones para definir los menues*/
-const char menu[MAINMENU_NUM][MAXITEMS] = {"Ajustes","Medicion","Ultimas   Medidas"};
-const char ajustes[AJUSTES_NUM][MAXITEMS] = {"Config.   Helices","Config.   Periodo","Ref. de    Lugar","Fecha y     Hora","Buzzer","Atras"};
-const char medicion[MEDICION_NUM][MAXITEMS] = {"Inicio","Atras"};
+const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
+const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
+const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
 
 /*Definicion de menues, submenues y acciones*/
 
@@ -93,7 +93,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col);
 void lcd_ClearOneLine(int row);
 void lcd_ClearCursor(int row);
 void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
-void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count, uint8_t cursorPosition);
+void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
 void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
 Adafruit_SH1106 display(OLED_SDA, OLED_SCL);
@@ -102,20 +102,13 @@ void setup()
 {
   	Wire.begin();         // inicializa bus I2C
  	display.begin(SH1106_SWITCHCAPVCC, 0x3C); // inicializa pantalla con direccion 0x3C
-	Serial.begin(9600);
 
-  estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
-  estado_anterior = AJUSTES;
-  menu_submenu_state = MAIN;			//Menu actual esta en el principal
+  	estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
+ 	 estado_anterior = AJUSTES;
+  	menu_submenu_state = MAIN;			//Menu actual esta en el principal
 
   //SetEEPROMValue(PERIODO,10000);
-  	display.clearDisplay();      // limpia pantalla  
-	display.setCursor(0,ROW_STATUS);
-	display.setTextSize(2);      // establece tamano de texto en 2
-  	display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
- 	display.cp437(true);
-  	display.write(0x10);
-	display.display(); 
+  	
 	lcd_DisplayMenu(estado_actual, menu_submenu_state);			//Se muestra en el display lo que se declaro
 }
 void loop(void)								
@@ -288,67 +281,67 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 
 		case AJUSTES:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,0);	//Donde comienza a mostrar, cuantos voy a mostrar, donde esta el cursor
+			lcd_PrintCursor(menu_submenu_state,0,1);	//Donde comienza a mostrar, cuantos voy a mostrar
 		}
 		break;
 
 		case MEDICION:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,33);
+			lcd_PrintCursor(menu_submenu_state,1,1);
 		}
 		break;
 
 		case ULT_MEDIDAS:
 		{
-			lcd_PrintCursor(menu_submenu_state,2,1,0);
+			lcd_PrintCursor(menu_submenu_state,2,1);
 		}
 		break;
 
 		case CFG_HELICES:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,0);
+			lcd_PrintCursor(menu_submenu_state,0,1);
 		}
 		break;
 
 		case CFG_PERIODO:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,33);
+			lcd_PrintCursor(menu_submenu_state,1,1);
 		}
 		break;
 		
 		case REF_LUGAR:
 		{
-			lcd_PrintCursor(menu_submenu_state,2,2,0);
+			lcd_PrintCursor(menu_submenu_state,2,1);
 		}
 		break;
 
 		case CFG_DATE:
 		{
-			lcd_PrintCursor(menu_submenu_state,2,2,33);
+			lcd_PrintCursor(menu_submenu_state,3,1);
 		}
 		break;
 
 		case BUZZER:
 		{
-			lcd_PrintCursor(menu_submenu_state,4,2,0);
+			lcd_PrintCursor(menu_submenu_state,4,1);
 		}
 		break;
 
 		case ATRAS_AJUSTES:
 		{
-			lcd_PrintCursor(menu_submenu_state,4,2,33);
+			lcd_PrintCursor(menu_submenu_state,5,1);
 		}
 		break;
 
 		case INICIO_MEDICION:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,0);
+			lcd_PrintCursor(menu_submenu_state,0,1);
 		}
 		break;
 
 		case ATRAS_MEDICION:
 		{
-			lcd_PrintCursor(menu_submenu_state,0,2,33);
+			lcd_PrintCursor(menu_submenu_state,1,1);
 		}
 		break;
 
@@ -365,40 +358,52 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 }
 
 /* Funcion para imprimir en pantalla*/
-void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count, uint8_t cursorPosition) //Estados, donde comienza en el array que corresponde
+void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
 {
-	display.clearDisplay();
-	display.setCursor(0,cursorPosition);
-	display.setTextSize(2);      	// establece tamano de texto en 2
-  	display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+	display.clearDisplay();      // limpia pantalla      
+  	display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
+	display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
+  	display.setCursor(0,56);
+  	display.setTextSize(1);
+  	display.setTextColor(WHITE);
+ 	display.cp437(true);
+  	display.write(0x11);
+  	display.setCursor(58,56);
+  	display.print("OK"); 
+  	display.setCursor(121,56);
   	display.cp437(true);
   	display.write(0x10);
 	display.display(); 
-	uint8_t cursor = 0;
+	
 	if (count <= ROWNUM){
 		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
 		{
-			display.setCursor(13,cursor);								//Se coloca el cursor en la posicion 12 de columna y la fila 0
-			if (cursor==0) {
-			cursor = 33;		
-			}else {
-			cursor = 0;
-			}							//Se coloca el cursor en la fila 1 en la siguiente iteracion
+			
+			display.setCursor(0,0);
+			display.setTextSize(1);
+  			display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
 
 			if (menu_submenu_state == MAIN){
-				display.setTextSize(2);      // establece tamano de texto en 2
-  				display.setTextColor(WHITE);
+				
+				display.print("    Menu Principal");
+  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+  				display.setTextSize(2);      // establece tamano de texto en 2
+  				display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
 				display.print(menu[i]);										//Muestra solo el array del menu principal
 				display.display(); 							//Muestra solo el array del menu principal
 			}
 			else if (menu_submenu_state == AJUSTES_SUBMENU){	
-				display.setTextSize(2);
+				display.print("        Ajustes");
+  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+  				display.setTextSize(2);      // establece tamano de texto en 2
 				display.setTextColor(WHITE);
 				display.print(ajustes[i]);									//Muestra solo el array del submenu ajustes
 				display.display(); 							//Muestra solo el array del submenu ajustes
 			}
 			else if (menu_submenu_state == MEDICION_SUBMENU){	
-				display.setTextSize(2);
+				display.print("       Medicion");
+  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+  				display.setTextSize(2);      // establece tamano de texto en 2
 				display.setTextColor(WHITE);
 				display.print(medicion[i]);									//Muestra solo el array el submenu medicion
 				display.display(); 					//Muestra solo el array el submenu medicion
@@ -479,5 +484,6 @@ void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		break;
 	}
 }
+
 
 
