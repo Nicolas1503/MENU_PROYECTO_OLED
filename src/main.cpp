@@ -493,7 +493,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				buttonProcess = ENTER;
 			}
 			estado_actual = INICIO_MEDICION;
-			preferences.end();
+			//preferences.end();
 			return 1;
 			
 		}
@@ -555,7 +555,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				}
 			}
 			preferences.putInt("PERIODO_MEMO", periodo);
-			preferences.end();
+			
 
 		}
 		break;
