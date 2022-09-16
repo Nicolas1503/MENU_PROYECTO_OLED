@@ -94,12 +94,16 @@ void lcd_ClearOneLine(int row);
 void lcd_ClearCursor(int row);
 void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
+void IRAM_ATTR isr_helice();
 
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
 Adafruit_SH1106 display(OLED_SDA, OLED_SCL);
 
 Preferences preferences;
+
+const int gpio_helice = 20; // Cambiar esto por el valor correcto
+uint16_t contador_helice = 0;
 
 void setup()
 {
@@ -462,8 +466,11 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				unsigned long lastmillis = millis();
 				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
 
+				contador_helice = 0; // Pongo en 0 el contador de pulsos
+				attachInterrupt(gpio_helice, isr_helice, RISING); // Habilita la interrupcion que va a contar los pulsos
 				while(buttonOut)
 				{
+					
 					timedone = millis() - lastmillis;
 					if(timedone >= periodo || CheckButton() == ENTER)
 					{
@@ -491,6 +498,20 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					}
 				}
 				buttonProcess = ENTER;
+				detachInterrupt(gpio_helice); // Deshabilita la interrupcion y deja de contar pulsos
+
+				/* Leer valores de A y B de la memoria flash
+				int A1 = preferences.getInt("A1", 0);
+				int B1 = preferences.getInt("B1", 0);
+				*/
+
+				/* Calcular con la ecuacion
+				int v = A*contador_helice + B;
+				*/
+
+				/* Mostrar en pantalla de la velocidad y entrar en un loop 
+				donde la persona tenga que presionar enter para salir y dejar de ver la velocidad
+				*/
 			}
 			estado_actual = INICIO_MEDICION;
 			//preferences.end();
@@ -561,4 +582,9 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		break;
 	}
 	return 0;
+}
+
+void IRAM_ATTR isr_helice()
+{
+	contador_helice++;
 }
