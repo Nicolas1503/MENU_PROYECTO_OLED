@@ -121,10 +121,10 @@ void loop(void)
 	while(true)
 	{
 		ret = lcd_UpdateCursor(estado_actual,ROWNUM,COLNUM);	//Si se apreto algun boton se actualiza la pantalla (actualiza los estados)
+		ret |= StateMachine_Control(estado_actual,menu_submenu_state);
 		if (ret == 1){
 			lcd_DisplayMenu(estado_actual,menu_submenu_state);	
 		}
-		StateMachine_Control(estado_actual,menu_submenu_state);
 	}
 }
 
@@ -464,15 +464,9 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 				while(buttonOut)
 				{
-					if (CheckButton() != ENTER)
+					timedone = millis() - lastmillis;
+					if(timedone >= periodo || CheckButton() == ENTER)
 					{
-						timedone = millis() - lastmillis;
-						if(timedone >= periodo)
-						{
-							buttonOut = 0;
-						}
-					}
-					else{
 						buttonOut = 0;
 					}
 					
@@ -562,7 +556,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			}
 			preferences.putInt("PERIODO_MEMO", periodo);
 			preferences.end();
-		
 
 		}
 		break;
