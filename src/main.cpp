@@ -4,6 +4,7 @@
 #include <Wire.h> 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH1106.h>
+#include <Preferences.h> 
 
 #define MAXITEMS 20						//Cantidad de posiciones en el display
 #define ROWNUM 64
@@ -36,6 +37,9 @@ const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
 #define INICIO_MEDICION 11
 #define ATRAS_MEDICION 12
 #define TOMAR_MEDICION 13
+#define TOMAR_PERIODO 14
+
+int PERIODO_MEMO;
 
 
 /*Definicion de ubicacion dentro del menu*/
@@ -44,13 +48,6 @@ typedef enum{
 	AJUSTES_SUBMENU,
 	MEDICION_SUBMENU
 }Menu_state_e;
-
-/*Deficinicion de variables a setear*/
-typedef enum{
-    A_ELISE = 0,
-    B_ELISE = 1,
-	PERIODO = 2
-}address_t;
 
 /*No se usa todavia VER*/
 typedef enum{
@@ -86,17 +83,23 @@ Menu_state_e menu_submenu_state;
 row_t ROW_STATUS;
 
 
-//void SetEEPROMValue(address_t address, float value);
-//float GetEEPROMValue(address_t address);
+/*void SetEEPROMValueF(int address, float value);
+void UpdateEEPROMValueF(int adress, float value);
+float GetEEPROMValueF(int address);*/
+
 move_t CheckButton(void);
+
 bool lcd_UpdateCursor(uint8_t Menu, int row, int col);
 void lcd_ClearOneLine(int row);
 void lcd_ClearCursor(int row);
 void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
-void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
+
+bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
 Adafruit_SH1106 display(OLED_SDA, OLED_SCL);
+
+Preferences preferences;
 
 void setup()
 {
@@ -104,12 +107,13 @@ void setup()
  	display.begin(SH1106_SWITCHCAPVCC, 0x3C); // inicializa pantalla con direccion 0x3C
 
   	estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
- 	 estado_anterior = AJUSTES;
+ 	estado_anterior = AJUSTES;
   	menu_submenu_state = MAIN;			//Menu actual esta en el principal
 
-  //SetEEPROMValue(PERIODO,10000);
   	
 	lcd_DisplayMenu(estado_actual, menu_submenu_state);			//Se muestra en el display lo que se declaro
+
+	 preferences.begin("myfile", false);
 }
 void loop(void)								
 {
@@ -125,17 +129,22 @@ void loop(void)
 }
 
 
-/*float GetEEPROMValue(address_t address)
+/*float GetEEPROMValueF(const char [7],int)
 {
-    float val; 
-    float value = EEPROM.get(address, val);
-    return value;
+    float val;
+    return preferences.getFloat("param", 0);
 }
 
-void SetEEPROMValue(address_t address, float value)
+void SetEEPROMValueF(const char [7],float)
 {
-    EEPROM.put(address, value);
+   preferences.putFloat("param", param);  
+}
+
+void UpdateEEPROMValueF(int address, float value)
+{
+	EEPROM.update(address,value);
 }*/
+
 
 /*Funcion que chequea que boton esta presionado*/
 move_t CheckButton(void)
@@ -222,6 +231,13 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				{
 					menu_submenu_state = MAIN;						//Se pasa del menu medicion al MAINMENU
 					estado_actual = AJUSTES;						//Primer estado de este menu 
+				}
+				break;
+
+				case CFG_PERIODO:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = TOMAR_PERIODO;				//Cuando se aprieta enter en config. periodo se pasa al estado config. periodo
 				}
 				break;
 			}
@@ -414,33 +430,38 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 
 
 /*Funcion que se encarga especificamente de tomar la medicion*/
-void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
+
+bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 {
 	switch(Menu)
 	{
 		case TOMAR_MEDICION:
+
 		{
+
 			move_t buttonProcess = DONTMOVE;
 			bool buttonOut = 1;
-			while(buttonProcess != ENTER)					//Me aparto del codigo principal mientras el boton sea distinto de enter
+			while(buttonProcess != ENTER)								//Me aparto del codigo principal mientras el boton sea distinto de enter
 			{
 				float dotcount = 1000.0;
 				uint8_t dotiter = 0;
 
-				display.clearDisplay();
+				/* Muestro el periodo en segundos*/
+				display.clearDisplay(); 
 				display.setCursor(0,0);
-				display.setTextSize(2);      // establece tamano de texto en 2
-  				display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+				display.setTextSize(2);
+  				display.setTextColor(WHITE);
 				display.print("T = ");
-				float periodo = 7500;
-				display.setCursor(40,0);
-				display.print(periodo/1000); //Convierto de milisegundos a segundos
-				display.print("sec");
 				display.display();
-				
+				int periodo = preferences.getInt("PERIODO_MEMO", 0);
+				/*lcd.setCursor(4,0);
+				lcd.print(periodo/1000); //Convierto de milisegundos a segundos
+				lcd.print("sec");
+				*/
+
 				unsigned long lastmillis = millis();
 				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
-				
+
 				while(buttonOut)
 				{
 					if (CheckButton() != ENTER)
@@ -459,15 +480,15 @@ void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						Esto es solo un ejemplo */
 					if(timedone == dotcount)
 					{
-						display.setCursor(dotiter,17);
-						display.setTextSize(2);      // establece tamano de texto en 2
-  						display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+						display.setCursor(dotiter,1);
+						display.setTextSize(2);
+  						display.setTextColor(WHITE);
 						display.print(".");
-						display.display();
 						dotcount = dotcount + 1000.0;
-						if(dotiter < 64)
+						display.display();
+						if(dotiter < 16)
 						{
-							dotiter= dotiter+1;
+							dotiter++;
 						}
 						else{
 							lcd_ClearOneLine(1);
@@ -475,15 +496,76 @@ void StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						}
 					}
 				}
-				
-				buttonProcess = ENTER;						//Sirve para volver hacia el while
+				buttonProcess = ENTER;
 			}
-			estado_actual = INICIO_MEDICION;				//Se vuelve a la pantalla anterior 
+			estado_actual = INICIO_MEDICION;
+			preferences.end();
+			return 1;
 			
 		}
 		break;
+			
+		case TOMAR_PERIODO:
+		
+		{
+			bool outPeriodo = 1;
+			move_t buttonProcess = DONTMOVE;
+			int periodo = preferences.getInt("PERIODO_MEMO", 0);
+			display.clearDisplay(); 
+			display.setCursor(0,0);
+			display.setTextSize(2);
+  			display.setTextColor(WHITE);
+			display.print("Periodo");
+			display.setCursor(0,17);
+			display.print(periodo);
+			display.display();
+			
+			while(outPeriodo)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outPeriodo = 0;
+						estado_actual = CFG_PERIODO;
+					}
+					break;
+
+					case UP:
+					{
+						periodo = periodo + 100;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						display.clearDisplay();
+						display.setCursor(0,17);
+						display.setTextSize(2);
+  						display.setTextColor(WHITE);
+						display.print(periodo);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+						if((periodo - 100) != 0){			//Si se oprime el boton hacia arriba se decrementa el periodo 
+							periodo = periodo - 100;
+						}
+						display.clearDisplay();
+						display.setCursor(0,17);
+						display.setTextSize(2);
+  						display.setTextColor(WHITE);
+						display.print(periodo);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putInt("PERIODO_MEMO", periodo);
+			preferences.end();
+		
+
+		}
+		break;
 	}
+	return 0;
 }
-
-
-
