@@ -489,11 +489,11 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 							dotiter = 0;
 						}
 					}
-				}
+				}//aca iria la cuenta de pulsos
 				buttonProcess = ENTER;
 			}
 			estado_actual = INICIO_MEDICION;
-			//preferences.end();
+			
 			return 1;
 			
 		}
