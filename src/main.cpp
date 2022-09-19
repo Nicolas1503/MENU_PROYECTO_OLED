@@ -550,7 +550,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			display.setCursor(0,17);
 			display.print(periodo);
 			display.display();
-			
 			while(outPeriodo)
 			{
 				buttonProcess = CheckButton();
