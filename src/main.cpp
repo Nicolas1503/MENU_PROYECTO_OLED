@@ -112,6 +112,7 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 void IRAM_ATTR isr_helice();
 void setConfigDisplay(void);
 void setMenuDisplay(String name, String arr);
+void setConfigDisplayParam(String param_title);
 
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
@@ -634,12 +635,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outPeriodo = 1;
 			move_t buttonProcess = DONTMOVE;
 			int periodo = preferences.getInt("PERIODO_MEMO", 0);
-			display.clearDisplay(); 
-			display.setCursor(0,0);
-			display.setTextSize(2);
-  			display.setTextColor(WHITE);
-			display.print("Periodo");
-			display.setCursor(0,17);
+			setConfigDisplayParam("   Config. Periodo");
 			display.print(periodo);
 			display.display();
 			
@@ -659,10 +655,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						periodo = periodo + 5000;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						display.clearDisplay();
-						display.setCursor(0,17);
-						display.setTextSize(2);
-  						display.setTextColor(WHITE);
+						setConfigDisplayParam("   Config. Periodo");
 						display.print(periodo);
 						display.display();
 					}
@@ -673,10 +666,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						if((periodo - 5000) != 0){			//Si se oprime el boton hacia arriba se decrementa el periodo 
 							periodo = periodo - 5000;
 						}
-						display.clearDisplay();
-						display.setCursor(0,17);
-						display.setTextSize(2);
-  						display.setTextColor(WHITE);
+						setConfigDisplayParam("   Config. Periodo");
 						display.print(periodo);
 						display.display();
 					}
@@ -694,12 +684,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_A1 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_A = preferences.getFloat("CONSTANTE_A", 0);
-			display.clearDisplay(); 
-			display.setCursor(0,0);
-			display.setTextSize(2);
-  			display.setTextColor(WHITE);
-			display.print("Valor A");
-			display.setCursor(0,17);
+			setConfigDisplayParam("  Valor A Helice 1");
 			display.print(CONSTANTE_A);
 			display.display();
 			
@@ -719,10 +704,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_A = CONSTANTE_A + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						display.clearDisplay();
-						display.setCursor(0,17);
-						display.setTextSize(2);
-  						display.setTextColor(WHITE);
+						setConfigDisplayParam("  Valor A Helice 1");
 						display.print(CONSTANTE_A);
 						display.display();
 					}
@@ -732,10 +714,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_A = CONSTANTE_A - 0.01;
-						display.clearDisplay();
-						display.setCursor(0,17);
-						display.setTextSize(2);
-  						display.setTextColor(WHITE);
+						setConfigDisplayParam("  Valor A Helice 1");
 						display.print(CONSTANTE_A);
 						display.display();
 					}
@@ -775,5 +754,27 @@ void setConfigDisplay(void)
   	display.setCursor(121,56);
   	display.cp437(true);
   	display.write(0x10);
+	display.display(); 
+}
+
+void setConfigDisplayParam(String param_title)
+{
+	display.clearDisplay();      // limpia pantalla      
+  	display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
+	display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
+  	display.setCursor(0,0);
+  	display.setTextSize(1);
+  	display.setTextColor(WHITE);
+	display.print(param_title);
+	display.setCursor(0,56);
+ 	display.cp437(true);
+  	display.write(0x1E);
+  	display.setCursor(58,56);
+  	display.print("OK"); 
+  	display.setCursor(121,56);
+  	display.cp437(true);
+  	display.write(0x1F);
+	display.setCursor(0,20);
+  	display.setTextSize(2);
 	display.display(); 
 }
