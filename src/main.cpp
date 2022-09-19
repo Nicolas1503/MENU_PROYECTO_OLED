@@ -16,13 +16,14 @@
 #define MAINMENU_NUM 3					//Cantidad de chars en el mainmenu
 #define AJUSTES_NUM 6					//Cantidad de chars en el menu ajustes
 #define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
-#define HELICE_NUM 3
-
+#define HELICE_NUM 4
+#define CONSTANTES_NUM 3
 /*Matriz de dos dimensiones para definir los menues*/
 const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
 const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
 const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
-const char helice[HELICE_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
+const char helice[HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
+const char constantes[CONSTANTES_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 
 /*Definicion de menues, submenues y acciones*/
 
@@ -40,11 +41,15 @@ const char helice[HELICE_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define ATRAS_MEDICION 12
 #define TOMAR_MEDICION 13
 #define TOMAR_PERIODO 14
-#define VALOR_A 15
-#define VALOR_B 16
-#define ATRAS_HELICE 17
-#define SET_VALOR_A 18	
-#define SET_VALOR_B	19
+#define HELICE_1 15
+#define HELICE_2 16
+#define HELICE_3 17
+#define ATRAS_HELICE 18
+#define VALOR_A1 19
+#define VALOR_B1 20
+#define ATRAS_HELICE_1 21
+#define SET_VALOR_A1 22	
+#define SET_VALOR_B1	23
 
 int PERIODO_MEMO;
 
@@ -54,7 +59,8 @@ typedef enum{
 	MAIN,
 	AJUSTES_SUBMENU,
 	MEDICION_SUBMENU,
-	HELICE_SUBMENU
+	HELICE_SUBMENU,
+	HELICE_1_SUBMENU
 
 }Menu_state_e;
 
@@ -259,7 +265,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				case CFG_HELICES:
 				{
 					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = VALOR_A;
+					estado_actual = HELICE_1;
 				}
 				break;
 
@@ -270,10 +276,24 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				}
 				break;
 
-				case VALOR_A:
+				case HELICE_1:
 				{
-					menu_submenu_state = HELICE_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
-					estado_actual = SET_VALOR_A;				
+					menu_submenu_state = HELICE_1_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A1;				
+				}
+				break;
+
+				case ATRAS_HELICE_1:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A1:
+				{
+					menu_submenu_state = HELICE_1_SUBMENU;
+					estado_actual = SET_VALOR_A1;
 				}
 				break;
 			}
@@ -295,8 +315,12 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 			lastMenu = ATRAS_MEDICION;
 			break;
 		case HELICE_SUBMENU:
-			firstMenu = VALOR_A;
+			firstMenu = HELICE_1;
 			lastMenu = ATRAS_HELICE;
+			break;
+		case HELICE_1_SUBMENU:
+			firstMenu = VALOR_A1;
+			lastMenu = ATRAS_HELICE_1;
 			break;
 		}
 		
@@ -407,19 +431,43 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-		case VALOR_A:
+		case HELICE_1:
 		{
 			lcd_PrintCursor(menu_submenu_state,0,1);
 		}
 		break;
 
-		case VALOR_B:
+		case HELICE_2:
 		{
 			lcd_PrintCursor(menu_submenu_state,1,1);
 		}
 		break;
 
+		case HELICE_3:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+		
 		case ATRAS_HELICE:
+		{
+			lcd_PrintCursor(menu_submenu_state,3,1);
+		}
+		break;
+
+		case VALOR_A1:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B1:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+			case ATRAS_HELICE_1:
 		{
 			lcd_PrintCursor(menu_submenu_state,2,1);
 		}
@@ -465,6 +513,9 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 			}
 			else if (menu_submenu_state == HELICE_SUBMENU){	
 				setMenuDisplay("Config. Helices", helice[i]);
+			}
+			else if (menu_submenu_state == HELICE_1_SUBMENU){	
+				setMenuDisplay("Config. Helices", constantes[i]);
 			}
 		}
 	}
@@ -638,9 +689,9 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		}
 		break;
 	
-	case SET_VALOR_A:
+	case SET_VALOR_A1:
 	{
-			bool outConstante_A = 1;
+			bool outConstante_A1 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_A = preferences.getFloat("CONSTANTE_A", 0);
 			display.clearDisplay(); 
@@ -652,7 +703,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			display.print(CONSTANTE_A);
 			display.display();
 			
-			while(outConstante_A)
+			while(outConstante_A1)
 			{
 				buttonProcess = CheckButton();
 				switch(buttonProcess)
@@ -660,8 +711,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case DONTMOVE:break;
 					case ENTER:
 					{
-						outConstante_A = 0;
-						estado_actual = VALOR_A;
+						outConstante_A1 = 0;
+						estado_actual = VALOR_A1;
 					}
 					break;
 
@@ -702,7 +753,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	return 0;
 
 	
-
 }
 
 void IRAM_ATTR isr_helice()
