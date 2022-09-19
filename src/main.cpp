@@ -461,7 +461,7 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 				setMenuDisplay("        Ajustes", ajustes[i]);	
 			}
 			else if (menu_submenu_state == MEDICION_SUBMENU){
-				setMenuDisplay("       Medicion", edicion[i]);
+				setMenuDisplay("       Medicion", medicion[i]);
 			}
 			else if (menu_submenu_state == HELICE_SUBMENU){	
 				setMenuDisplay("Config. Helices", helice[i]);
