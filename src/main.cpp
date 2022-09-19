@@ -16,11 +16,13 @@
 #define MAINMENU_NUM 3					//Cantidad de chars en el mainmenu
 #define AJUSTES_NUM 6					//Cantidad de chars en el menu ajustes
 #define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
+#define HELICE_NUM 3
 
 /*Matriz de dos dimensiones para definir los menues*/
 const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
 const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
 const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
+const char helice[HELICE_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 
 /*Definicion de menues, submenues y acciones*/
 
@@ -38,6 +40,11 @@ const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
 #define ATRAS_MEDICION 12
 #define TOMAR_MEDICION 13
 #define TOMAR_PERIODO 14
+#define VALOR_A 15
+#define VALOR_B 16
+#define ATRAS_HELICE 17
+#define SET_VALOR_A 18	
+#define SET_VALOR_B	19
 
 int PERIODO_MEMO;
 
@@ -46,7 +53,9 @@ int PERIODO_MEMO;
 typedef enum{
 	MAIN,
 	AJUSTES_SUBMENU,
-	MEDICION_SUBMENU
+	MEDICION_SUBMENU,
+	HELICE_SUBMENU
+
 }Menu_state_e;
 
 /*No se usa todavia VER*/
@@ -244,6 +253,27 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 					estado_actual = TOMAR_PERIODO;				//Cuando se aprieta enter en config. periodo se pasa al estado config. periodo
 				}
 				break;
+
+				case CFG_HELICES:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = VALOR_A;
+				}
+				break;
+
+				case ATRAS_HELICE:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = CFG_HELICES;
+				}
+				break;
+
+				case VALOR_A:
+				{
+					menu_submenu_state = HELICE_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = SET_VALOR_A;				
+				}
+				break;
 			}
 		}
 
@@ -261,6 +291,10 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 		case MEDICION_SUBMENU:
 			firstMenu = INICIO_MEDICION;
 			lastMenu = ATRAS_MEDICION;
+			break;
+		case HELICE_SUBMENU:
+			firstMenu = VALOR_A;
+			lastMenu = ATRAS_HELICE;
 			break;
 		}
 		
@@ -371,6 +405,24 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
+		case VALOR_A:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
 		default:
 			Menu = AJUSTES;
 		break;
@@ -426,6 +478,15 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
   				display.setTextSize(2);      // establece tamano de texto en 2
 				display.setTextColor(WHITE);
 				display.print(medicion[i]);									//Muestra solo el array el submenu medicion
+				display.display(); 					//Muestra solo el array el submenu medicion
+			}
+
+			else if (menu_submenu_state == HELICE_SUBMENU){	
+				display.print("Config. Helices");
+  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+  				display.setTextSize(2);      // establece tamano de texto en 2
+				display.setTextColor(WHITE);
+				display.print(helice[i]);									//Muestra solo el array el submenu medicion
 				display.display(); 					//Muestra solo el array el submenu medicion
 			}
 		}
@@ -504,7 +565,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				int A1 = preferences.getInt("A1", 0);
 				int B1 = preferences.getInt("B1", 0);
 				*/
-				float A = 0.2368;
+				float A = preferences.getFloat("CONSTANTE_A", 0);
 				float B = 0.0044;
 				float pulse = contador_helice;
 				float tiempito = periodo/1000;
@@ -523,6 +584,9 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
   				display.setTextColor(WHITE);
 				display.print(contador_helice);
 				display.setCursor(0,20);
+				display.print(A);
+				display.display();
+				display.setCursor(0,40);
 				display.print(v,4);
 				display.display();
 				delay(10000);
@@ -550,6 +614,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			display.setCursor(0,17);
 			display.print(periodo);
 			display.display();
+			
 			while(outPeriodo)
 			{
 				buttonProcess = CheckButton();
@@ -595,8 +660,72 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 		}
 		break;
+	
+	case SET_VALOR_A:
+	{
+			bool outConstante_A = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_A = preferences.getFloat("CONSTANTE_A", 0);
+			display.clearDisplay(); 
+			display.setCursor(0,0);
+			display.setTextSize(2);
+  			display.setTextColor(WHITE);
+			display.print("Valor A");
+			display.setCursor(0,17);
+			display.print(CONSTANTE_A);
+			display.display();
+			
+			while(outConstante_A)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_A = 0;
+						estado_actual = VALOR_A;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_A = CONSTANTE_A + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						display.clearDisplay();
+						display.setCursor(0,17);
+						display.setTextSize(2);
+  						display.setTextColor(WHITE);
+						display.print(CONSTANTE_A);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_A = CONSTANTE_A - 0.01;
+						display.clearDisplay();
+						display.setCursor(0,17);
+						display.setTextSize(2);
+  						display.setTextColor(WHITE);
+						display.print(CONSTANTE_A);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_A", CONSTANTE_A);
+			
+
+		}
+		break;
+	
+	
 	}
 	return 0;
+
+	
+
 }
 
 void IRAM_ATTR isr_helice()
