@@ -105,7 +105,7 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
 void IRAM_ATTR isr_helice();
 void setConfigDisplay(void);
-void setMenuDisplay(const char name, const char arr);
+void setMenuDisplay(String name, String arr);
 
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
@@ -431,7 +431,7 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 	}
 }
 
-void setMenuDisplay(const char name, const char arr)
+void setMenuDisplay(String name, String arr)
 {
 	display.print(name);
 	display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
