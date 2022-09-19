@@ -104,6 +104,8 @@ void lcd_ClearCursor(int row);
 void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
 void IRAM_ATTR isr_helice();
+void setConfigDisplay(void);
+void setMenuDisplay(const char name, const char arr);
 
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
@@ -429,23 +431,20 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 	}
 }
 
+void setMenuDisplay(const char name, const char arr)
+{
+	display.print(name);
+	display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+	display.setTextSize(2);      // establece tamano de texto en 2
+	display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+	display.print(arr);										//Muestra solo el array del menu principal
+	display.display(); 							//Muestra solo el array del menu principal
+}
+
 /* Funcion para imprimir en pantalla*/
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
 {
-	display.clearDisplay();      // limpia pantalla      
-  	display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
-	display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
-  	display.setCursor(0,56);
-  	display.setTextSize(1);
-  	display.setTextColor(WHITE);
- 	display.cp437(true);
-  	display.write(0x11);
-  	display.setCursor(58,56);
-  	display.print("OK"); 
-  	display.setCursor(121,56);
-  	display.cp437(true);
-  	display.write(0x10);
-	display.display(); 
+	setConfigDisplay();
 	
 	if (count <= ROWNUM){
 		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
@@ -456,13 +455,7 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
   			display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
 
 			if (menu_submenu_state == MAIN){
-				
-				display.print("    Menu Principal");
-  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
-  				display.setTextSize(2);      // establece tamano de texto en 2
-  				display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
-				display.print(menu[i]);										//Muestra solo el array del menu principal
-				display.display(); 							//Muestra solo el array del menu principal
+				setMenuDisplay("    Menu Principal", menu[i]);
 			}
 			else if (menu_submenu_state == AJUSTES_SUBMENU){	
 				display.print("        Ajustes");
@@ -731,4 +724,22 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 void IRAM_ATTR isr_helice()
 {
 	contador_helice++;
+}
+
+void setConfigDisplay(void)
+{
+	display.clearDisplay();      // limpia pantalla      
+  	display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
+	display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
+  	display.setCursor(0,56);
+  	display.setTextSize(1);
+  	display.setTextColor(WHITE);
+ 	display.cp437(true);
+  	display.write(0x11);
+  	display.setCursor(58,56);
+  	display.print("OK"); 
+  	display.setCursor(121,56);
+  	display.cp437(true);
+  	display.write(0x10);
+	display.display(); 
 }
