@@ -17,13 +17,18 @@
 #define AJUSTES_NUM 6					//Cantidad de chars en el menu ajustes
 #define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
 #define HELICE_NUM 4
-#define CONSTANTES_NUM 3
+#define CONSTANTE1_NUM 3
+#define CONSTANTE2_NUM 3
+#define CONSTANTE3_NUM 3
+
 /*Matriz de dos dimensiones para definir los menues*/
 const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
 const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
 const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
 const char helice[HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
-const char constantes[CONSTANTES_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
+const char constante1[CONSTANTE1_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
+const char constante2[CONSTANTE2_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
+const char constante3[CONSTANTE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 
 /*Definicion de menues, submenues y acciones*/
 
@@ -49,7 +54,17 @@ const char constantes[CONSTANTES_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"
 #define VALOR_B1 20
 #define ATRAS_HELICE_1 21
 #define SET_VALOR_A1 22	
-#define SET_VALOR_B1	23
+#define SET_VALOR_B1 23
+#define VALOR_A2 24
+#define VALOR_B2 25
+#define ATRAS_HELICE_2 26
+#define SET_VALOR_A2 27	
+#define SET_VALOR_B2 28
+#define VALOR_A3 29
+#define VALOR_B3 30
+#define ATRAS_HELICE_3 31
+#define SET_VALOR_A3 32	
+#define SET_VALOR_B3 33
 
 int PERIODO_MEMO;
 
@@ -60,7 +75,9 @@ typedef enum{
 	AJUSTES_SUBMENU,
 	MEDICION_SUBMENU,
 	HELICE_SUBMENU,
-	HELICE_1_SUBMENU
+	HELICE_1_SUBMENU,
+	HELICE_2_SUBMENU,
+	HELICE_3_SUBMENU
 
 }Menu_state_e;
 
@@ -297,6 +314,71 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 					estado_actual = SET_VALOR_A1;
 				}
 				break;
+
+				case VALOR_B1:
+				{
+					menu_submenu_state = HELICE_1_SUBMENU;
+					estado_actual = SET_VALOR_B1;
+				}
+				break;
+
+				case HELICE_2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A2;				
+				}
+				break;
+
+				case ATRAS_HELICE_2:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;
+					estado_actual = SET_VALOR_A2;
+				}
+				break;
+
+				case VALOR_B2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;
+					estado_actual = SET_VALOR_B2;
+				}
+				break;
+
+				case HELICE_3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A3;				
+				}
+				break;
+
+				case ATRAS_HELICE_3:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;
+					estado_actual = SET_VALOR_A3;
+				}
+				break;
+
+				case VALOR_B3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;
+					estado_actual = SET_VALOR_B3;
+				}
+				break;
+
+
 			}
 		}
 
@@ -322,6 +404,14 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 		case HELICE_1_SUBMENU:
 			firstMenu = VALOR_A1;
 			lastMenu = ATRAS_HELICE_1;
+			break;
+		case HELICE_2_SUBMENU:
+			firstMenu = VALOR_A2;
+			lastMenu = ATRAS_HELICE_2;
+			break;
+		case HELICE_3_SUBMENU:
+			firstMenu = VALOR_A3;
+			lastMenu = ATRAS_HELICE_3;
 			break;
 		}
 		
@@ -468,7 +558,43 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-			case ATRAS_HELICE_1:
+		case ATRAS_HELICE_1:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case VALOR_A2:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B2:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE_2:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case VALOR_A3:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B3:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE_3:
 		{
 			lcd_PrintCursor(menu_submenu_state,2,1);
 		}
@@ -516,7 +642,13 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 				setMenuDisplay("Config. Helices", helice[i]);
 			}
 			else if (menu_submenu_state == HELICE_1_SUBMENU){	
-				setMenuDisplay("Config. Helices", constantes[i]);
+				setMenuDisplay("Config. Helice 1", constante1[i]);
+			}
+			else if (menu_submenu_state == HELICE_2_SUBMENU){	
+				setMenuDisplay("Config. Helice 2", constante2[i]);
+			}
+			else if (menu_submenu_state == HELICE_3_SUBMENU){	
+				setMenuDisplay("Config. Helice 3", constante3[i]);
 			}
 		}
 	}
@@ -623,7 +755,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			
 			}
 			estado_actual = INICIO_MEDICION;
-			//preferences.end();
 			return 1;
 			
 		}
@@ -679,13 +810,14 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		}
 		break;
 	
-	case SET_VALOR_A1:
-	{
+		case SET_VALOR_A1:
+		
+		{	
 			bool outConstante_A1 = 1;
 			move_t buttonProcess = DONTMOVE;
-			float CONSTANTE_A = preferences.getFloat("CONSTANTE_A", 0);
+			float CONSTANTE_A1 = preferences.getFloat("CONSTANTE_A1", 0);
 			setConfigDisplayParam("  Valor A Helice 1");
-			display.print(CONSTANTE_A);
+			display.print(CONSTANTE_A1);
 			display.display();
 			
 			while(outConstante_A1)
@@ -703,9 +835,9 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 					case UP:
 					{
-						CONSTANTE_A = CONSTANTE_A + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						CONSTANTE_A1 = CONSTANTE_A1 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
 						setConfigDisplayParam("  Valor A Helice 1");
-						display.print(CONSTANTE_A);
+						display.print(CONSTANTE_A1);
 						display.display();
 					}
 					break;
@@ -713,20 +845,259 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case DOWN:
 					{
 								
-						CONSTANTE_A = CONSTANTE_A - 0.01;
+						CONSTANTE_A1 = CONSTANTE_A1 - 0.01;
 						setConfigDisplayParam("  Valor A Helice 1");
-						display.print(CONSTANTE_A);
+						display.print(CONSTANTE_A1);
 						display.display();
 					}
 					break;
 				}
 			}
-			preferences.putFloat("CONSTANTE_A", CONSTANTE_A);
+			preferences.putFloat("CONSTANTE_A1", CONSTANTE_A1);
+			
+
+		}
+		break;
+
+	case SET_VALOR_B1:
+	{
+			bool outConstante_B1 = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_B1 = preferences.getFloat("CONSTANTE_B1", 0);
+			setConfigDisplayParam("  Valor B Helice 1");
+			display.print(CONSTANTE_B1);
+			display.display();
+			
+			while(outConstante_B1)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_B1 = 0;
+						estado_actual = VALOR_A1;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_B1 = CONSTANTE_B1 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("  Valor B Helice 1");
+						display.print(CONSTANTE_B1);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_B1 = CONSTANTE_B1 - 0.01;
+						setConfigDisplayParam("  Valor B Helice 1");
+						display.print(CONSTANTE_B1);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_B1", CONSTANTE_B1);
+			
+
+		}
+		break;
+
+	case SET_VALOR_A2:
+	{	
+			bool outConstante_A2 = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_A2 = preferences.getFloat("CONSTANTE_A2", 0);
+			setConfigDisplayParam("   Valor A Helice 2");
+			display.print(CONSTANTE_A2);
+			display.display();
+			
+			while(outConstante_A2)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_A2 = 0;
+						estado_actual = VALOR_A2;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_A2 = CONSTANTE_A2 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("   Valor A Helice 2");
+						display.print(CONSTANTE_A2);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_A2 = CONSTANTE_A2 - 0.01;
+						setConfigDisplayParam("   Valor A Helice 2");
+						display.print(CONSTANTE_A2);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_A2", CONSTANTE_A2);
+			
+
+		}
+		break;
+
+	case SET_VALOR_B2:
+	{
+			bool outConstante_B2 = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_B2 = preferences.getFloat("CONSTANTE_B2", 0);
+			setConfigDisplayParam("  Valor B Helice 2");
+			display.print(CONSTANTE_B2);
+			display.display();
+			
+			while(outConstante_B2)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_B2 = 0;
+						estado_actual = VALOR_A2;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_B2 = CONSTANTE_B2 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("  Valor B Helice 2");
+						display.print(CONSTANTE_B2);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_B2 = CONSTANTE_B2 - 0.01;
+						setConfigDisplayParam("  Valor B Helice 2");
+						display.print(CONSTANTE_B2);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_B2", CONSTANTE_B2);
 			
 
 		}
 		break;
 	
+	case SET_VALOR_A3:
+	{	
+			bool outConstante_A3 = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_A3 = preferences.getFloat("CONSTANTE_A3", 0);
+			setConfigDisplayParam("   Valor A Helice 3");
+			display.print(CONSTANTE_A3);
+			display.display();
+			
+			while(outConstante_A3)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_A3 = 0;
+						estado_actual = VALOR_A3;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_A3 = CONSTANTE_A3 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("   Valor A Helice 3");
+						display.print(CONSTANTE_A3);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_A3 = CONSTANTE_A3 - 0.01;
+						setConfigDisplayParam("   Valor A Helice 3");
+						display.print(CONSTANTE_A3);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_A3", CONSTANTE_A3);
+			
+
+		}
+		break;
+
+	case SET_VALOR_B3:
+	{
+			bool outConstante_B3 = 1;
+			move_t buttonProcess = DONTMOVE;
+			float CONSTANTE_B3 = preferences.getFloat("CONSTANTE_B3", 0);
+			setConfigDisplayParam("  Valor B Helice 3");
+			display.print(CONSTANTE_B3);
+			display.display();
+			
+			while(outConstante_B3)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outConstante_B3 = 0;
+						estado_actual = VALOR_A3;
+					}
+					break;
+
+					case UP:
+					{
+						CONSTANTE_B3 = CONSTANTE_B3 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("  Valor B Helice 3");
+						display.print(CONSTANTE_B3);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						CONSTANTE_B3 = CONSTANTE_B3 - 0.01;
+						setConfigDisplayParam("  Valor B Helice 3");
+						display.print(CONSTANTE_B3);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putFloat("CONSTANTE_B3", CONSTANTE_B3);
+			
+
+		}
+		break;
 	
 	}
 	return 0;
