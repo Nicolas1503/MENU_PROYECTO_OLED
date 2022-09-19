@@ -457,30 +457,14 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 			if (menu_submenu_state == MAIN){
 				setMenuDisplay("    Menu Principal", menu[i]);
 			}
-			else if (menu_submenu_state == AJUSTES_SUBMENU){	
-				display.print("        Ajustes");
-  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
-  				display.setTextSize(2);      // establece tamano de texto en 2
-				display.setTextColor(WHITE);
-				display.print(ajustes[i]);									//Muestra solo el array del submenu ajustes
-				display.display(); 							//Muestra solo el array del submenu ajustes
+			else if (menu_submenu_state == AJUSTES_SUBMENU){
+				setMenuDisplay("        Ajustes", ajustes[i]);	
 			}
-			else if (menu_submenu_state == MEDICION_SUBMENU){	
-				display.print("       Medicion");
-  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
-  				display.setTextSize(2);      // establece tamano de texto en 2
-				display.setTextColor(WHITE);
-				display.print(medicion[i]);									//Muestra solo el array el submenu medicion
-				display.display(); 					//Muestra solo el array el submenu medicion
+			else if (menu_submenu_state == MEDICION_SUBMENU){
+				setMenuDisplay("       Medicion", edicion[i]);
 			}
-
 			else if (menu_submenu_state == HELICE_SUBMENU){	
-				display.print("Config. Helices");
-  				display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
-  				display.setTextSize(2);      // establece tamano de texto en 2
-				display.setTextColor(WHITE);
-				display.print(helice[i]);									//Muestra solo el array el submenu medicion
-				display.display(); 					//Muestra solo el array el submenu medicion
+				setMenuDisplay("Config. Helices", helice[i]);
 			}
 		}
 	}
