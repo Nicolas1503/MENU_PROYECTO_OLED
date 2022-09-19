@@ -1,144 +1,7 @@
-#include <Arduino.h>
-#include "button.hpp"
-#include "SPI.h"
-#include <Wire.h> 
-#include <Adafruit_GFX.h>
-#include <Adafruit_SH1106.h>
-#include <Preferences.h> 
-
-#define MAXITEMS 20						//Cantidad de posiciones en el display
-#define ROWNUM 64
-#define COLNUM 128
-
-#define OLED_SDA 21
-#define OLED_SCL 22
-
-#define MAINMENU_NUM 3					//Cantidad de chars en el mainmenu
-#define AJUSTES_NUM 6					//Cantidad de chars en el menu ajustes
-#define MEDICION_NUM 2					//Cantidad de chars en el menu medicion
-#define HELICE_NUM 4
-#define CONSTANTE1_NUM 3
-#define CONSTANTE2_NUM 3
-#define CONSTANTE3_NUM 3
-
-/*Matriz de dos dimensiones para definir los menues*/
-const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
-const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
-const char medicion[MEDICION_NUM][MAXITEMS] = {"  Inicio","  Atras"};
-const char helice[HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
-const char constante1[CONSTANTE1_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
-const char constante2[CONSTANTE2_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
-const char constante3[CONSTANTE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
-
-/*Definicion de menues, submenues y acciones*/
-
-#define	OUT 1
-#define AJUSTES 2
-#define MEDICION 3
-#define ULT_MEDIDAS 4
-#define CFG_HELICES 5
-#define CFG_PERIODO 6
-#define REF_LUGAR 7
-#define CFG_DATE 8
-#define BUZZER 9
-#define ATRAS_AJUSTES 10
-#define INICIO_MEDICION 11
-#define ATRAS_MEDICION 12
-#define TOMAR_MEDICION 13
-#define TOMAR_PERIODO 14
-#define HELICE_1 15
-#define HELICE_2 16
-#define HELICE_3 17
-#define ATRAS_HELICE 18
-#define VALOR_A1 19
-#define VALOR_B1 20
-#define ATRAS_HELICE_1 21
-#define SET_VALOR_A1 22	
-#define SET_VALOR_B1 23
-#define VALOR_A2 24
-#define VALOR_B2 25
-#define ATRAS_HELICE_2 26
-#define SET_VALOR_A2 27	
-#define SET_VALOR_B2 28
-#define VALOR_A3 29
-#define VALOR_B3 30
-#define ATRAS_HELICE_3 31
-#define SET_VALOR_A3 32	
-#define SET_VALOR_B3 33
-
-int PERIODO_MEMO;
-
-
-/*Definicion de ubicacion dentro del menu*/
-typedef enum{
-	MAIN,
-	AJUSTES_SUBMENU,
-	MEDICION_SUBMENU,
-	HELICE_SUBMENU,
-	HELICE_1_SUBMENU,
-	HELICE_2_SUBMENU,
-	HELICE_3_SUBMENU
-
-}Menu_state_e;
-
-/*No se usa todavia VER*/
-typedef enum{
-    IN = -1,
-    ROW_1 = 0,
-    ROW_2 = 1,
-    OUT_ROW = 2
-}row_t;
-
-/*Definicion de lo que sale de la funcion que chequea los botones*/
-typedef enum{
-	DONTMOVE = 0,
-	UP = 1,
-	DOWN = 2,
-	ENTER = 3
-}move_t;
-
-/*Definicion de pines*/
-const bool pullup = true;
-const int up_button = 5;
-const int down_button = 18;
-const int enter_button = 19;
-move_t buttonProcess = DONTMOVE;
-
-/*Botones como pull up*/
-Button Up(up_button,pullup);					
-Button Down(down_button,pullup);
-Button Enter(enter_button,pullup);
-
-uint8_t estado_actual;
-uint8_t estado_anterior;
-Menu_state_e menu_submenu_state;
-row_t ROW_STATUS;
-
-
-/*void SetEEPROMValueF(int address, float value);
-void UpdateEEPROMValueF(int adress, float value);
-float GetEEPROMValueF(int address);*/
-
-move_t CheckButton(void);
-
-bool lcd_UpdateCursor(uint8_t Menu, int row, int col);
-void lcd_ClearOneLine(int row);
-void lcd_ClearCursor(int row);
-void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state);
-void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count);
-void IRAM_ATTR isr_helice();
-void setConfigDisplay(void);
-void setMenuDisplay(String name, String arr);
-void setConfigDisplayParam(String param_title);
-
-bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
+#include "main.h"
 
 Adafruit_SH1106 display(OLED_SDA, OLED_SCL);
-
-Preferences preferences;
-
-const int gpio_helice = 34; // Cambiar esto por el valor correcto
-int contador_helice = 0;
+Preferences preferences; // Flash
 
 void setup()
 {
@@ -154,6 +17,7 @@ void setup()
 
 	 preferences.begin("myfile", false);
 }
+
 void loop(void)								
 {
 	bool ret = 0;							//Si el booleano es 0 no se hace nada
@@ -167,23 +31,8 @@ void loop(void)
 	}
 }
 
-
-/*float GetEEPROMValueF(const char [7],int)
-{
-    float val;
-    return preferences.getFloat("param", 0);
-}
-
-void SetEEPROMValueF(const char [7],float)
-{
-   preferences.putFloat("param", param);  
-}
-
-void UpdateEEPROMValueF(int address, float value)
-{
-	EEPROM.update(address,value);
-}*/
-
+/* ---------------------------------------------------------------------------------------------- */
+/* Button related functions */
 
 /*Funcion que chequea que boton esta presionado*/
 move_t CheckButton(void)
@@ -207,456 +56,12 @@ move_t CheckButton(void)
   return DONTMOVE; //Siempre retorna un 0 (no hace nada)excepto que se haya apretado un boton
 }
 
-bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion esta el chekbutton
-{
-	static move_t lastButtonProcess = DONTMOVE;		//Variables que quedan fijas segun el ultimo llamado de la funcion
-	static uint8_t firstMenu = AJUSTES;
-	static uint8_t lastMenu = ULT_MEDIDAS;
-	static Menu_state_e lastMenuState = MAIN;
-
-	buttonProcess = CheckButton();					//Aqui se recibe, UP, DOWN, ENTER O DONT MOVE
-
-	if (buttonProcess != DONTMOVE)					//Si es distinto de DONTMOVE se hace algo 
-	{
-		lastButtonProcess = buttonProcess;
-		if (buttonProcess == DOWN){					//Si el boton fue DOWN 
-			if(estado_actual != lastMenu)			//Si el estado actual es distinto de el ultimo item del menu se suma uno
-			{
-				estado_actual = estado_actual + 1;
-			}
-		}
-		else if (buttonProcess == UP){				//Si el boton fue UP 
-			if(estado_actual != firstMenu)			//Si el estado actual es distinto del primer item del menu se resta uno
-		 	{
-				estado_actual = estado_actual - 1;
-			}
-		}
-		else if (buttonProcess == ENTER)		 	//Si se aprieta el boton enter se chequea en que estado esta
-		{
-			
-			if (lastButtonProcess == DOWN || lastButtonProcess == UP)	
-			{
-				display.clearDisplay();
-			}
-			switch(estado_actual)
-			{
-				case AJUSTES:						
-				{
-					menu_submenu_state = AJUSTES_SUBMENU;			//Se pasa del MAIMENU al menu de ajustes
-					estado_actual = CFG_HELICES;					//Primer estado de este submenu	
-				}
-				break;
-				case ATRAS_AJUSTES:
-				{
-					menu_submenu_state = MAIN;						//Se pasa del menu de ajustes al MAINMENU
-					estado_actual = AJUSTES;						//Primer estado de este menu 
-				}
-				break;
-				case MEDICION:
-				{
-					menu_submenu_state = MEDICION_SUBMENU;			//Se pasa del MAIMENU al menu de medicion	
-					estado_actual = INICIO_MEDICION;				//Primer estado de este menu 
-				}
-				break;
-
-				case INICIO_MEDICION:
-				{
-					menu_submenu_state = MEDICION_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
-					estado_actual = TOMAR_MEDICION;				
-				}
-				break;
-
-				case ATRAS_MEDICION:
-				{
-					menu_submenu_state = MAIN;						//Se pasa del menu medicion al MAINMENU
-					estado_actual = AJUSTES;						//Primer estado de este menu 
-				}
-				break;
-
-				case CFG_PERIODO:
-				{
-					menu_submenu_state = AJUSTES_SUBMENU;
-					estado_actual = TOMAR_PERIODO;				//Cuando se aprieta enter en config. periodo se pasa al estado config. periodo
-				}
-				break;
-
-				case CFG_HELICES:
-				{
-					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
-				}
-				break;
-
-				case ATRAS_HELICE:
-				{
-					menu_submenu_state = AJUSTES_SUBMENU;
-					estado_actual = CFG_HELICES;
-				}
-				break;
-
-				case HELICE_1:
-				{
-					menu_submenu_state = HELICE_1_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
-					estado_actual = VALOR_A1;				
-				}
-				break;
-
-				case ATRAS_HELICE_1:
-				{
-					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
-				}
-				break;
-
-				case VALOR_A1:
-				{
-					menu_submenu_state = HELICE_1_SUBMENU;
-					estado_actual = SET_VALOR_A1;
-				}
-				break;
-
-				case VALOR_B1:
-				{
-					menu_submenu_state = HELICE_1_SUBMENU;
-					estado_actual = SET_VALOR_B1;
-				}
-				break;
-
-				case HELICE_2:
-				{
-					menu_submenu_state = HELICE_2_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
-					estado_actual = VALOR_A2;				
-				}
-				break;
-
-				case ATRAS_HELICE_2:
-				{
-					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
-				}
-				break;
-
-				case VALOR_A2:
-				{
-					menu_submenu_state = HELICE_2_SUBMENU;
-					estado_actual = SET_VALOR_A2;
-				}
-				break;
-
-				case VALOR_B2:
-				{
-					menu_submenu_state = HELICE_2_SUBMENU;
-					estado_actual = SET_VALOR_B2;
-				}
-				break;
-
-				case HELICE_3:
-				{
-					menu_submenu_state = HELICE_3_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
-					estado_actual = VALOR_A3;				
-				}
-				break;
-
-				case ATRAS_HELICE_3:
-				{
-					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
-				}
-				break;
-
-				case VALOR_A3:
-				{
-					menu_submenu_state = HELICE_3_SUBMENU;
-					estado_actual = SET_VALOR_A3;
-				}
-				break;
-
-				case VALOR_B3:
-				{
-					menu_submenu_state = HELICE_3_SUBMENU;
-					estado_actual = SET_VALOR_B3;
-				}
-				break;
 
 
-			}
-		}
-
-		/*Definicion de primeros y ultimos elementos en cada menu*/
-		switch(menu_submenu_state)					
-		{
-		case MAIN: 
-			firstMenu = AJUSTES;
-			lastMenu = ULT_MEDIDAS; 
-			break;
-		case AJUSTES_SUBMENU: 
-			firstMenu = CFG_HELICES;
-			lastMenu = ATRAS_AJUSTES; 
-			break;
-		case MEDICION_SUBMENU:
-			firstMenu = INICIO_MEDICION;
-			lastMenu = ATRAS_MEDICION;
-			break;
-		case HELICE_SUBMENU:
-			firstMenu = HELICE_1;
-			lastMenu = ATRAS_HELICE;
-			break;
-		case HELICE_1_SUBMENU:
-			firstMenu = VALOR_A1;
-			lastMenu = ATRAS_HELICE_1;
-			break;
-		case HELICE_2_SUBMENU:
-			firstMenu = VALOR_A2;
-			lastMenu = ATRAS_HELICE_2;
-			break;
-		case HELICE_3_SUBMENU:
-			firstMenu = VALOR_A3;
-			lastMenu = ATRAS_HELICE_3;
-			break;
-		}
-		
-
-		Serial.println("Cambio de estado");
-		Serial.println(estado_actual);
-		return 1;
-	}
-	return 0;
-}
-
-/*Se usa?*/
-void lcd_ClearOneLine(int row)
-{
-	for(uint8_t i=0; i < COLNUM ; i++)
-	{
-		display.setCursor(i,row);
-		display.print(" ");
-		display.display(); 
-	}
-}
-
-/*Se usa?*/
-void lcd_ClearCursor(int row)
-{
-	display.setCursor(0,row);
-	display.print(" ");
-	display.display(); 
-}
-
-void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion que imprime las opciones en el display	
-{
-	switch(Menu)
-	{
-		case OUT:							//Se define el tope en el enum para no entrar en estados que no existen
-			Menu = AJUSTES;
-		break;
-
-		case AJUSTES:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);	//Donde comienza a mostrar, cuantos voy a mostrar
-		}
-		break;
-
-		case MEDICION:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case ULT_MEDIDAS:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
-		case CFG_HELICES:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case CFG_PERIODO:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-		
-		case REF_LUGAR:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
-		case CFG_DATE:
-		{
-			lcd_PrintCursor(menu_submenu_state,3,1);
-		}
-		break;
-
-		case BUZZER:
-		{
-			lcd_PrintCursor(menu_submenu_state,4,1);
-		}
-		break;
-
-		case ATRAS_AJUSTES:
-		{
-			lcd_PrintCursor(menu_submenu_state,5,1);
-		}
-		break;
-
-		case INICIO_MEDICION:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case ATRAS_MEDICION:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case TOMAR_MEDICION:
-		{
-			//No va a hacer nada en la pantalla 
-		}
-		break;
-
-		case HELICE_1:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case HELICE_2:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case HELICE_3:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-		
-		case ATRAS_HELICE:
-		{
-			lcd_PrintCursor(menu_submenu_state,3,1);
-		}
-		break;
-
-		case VALOR_A1:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case VALOR_B1:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case ATRAS_HELICE_1:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
-		case VALOR_A2:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case VALOR_B2:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case ATRAS_HELICE_2:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
-		case VALOR_A3:
-		{
-			lcd_PrintCursor(menu_submenu_state,0,1);
-		}
-		break;
-
-		case VALOR_B3:
-		{
-			lcd_PrintCursor(menu_submenu_state,1,1);
-		}
-		break;
-
-		case ATRAS_HELICE_3:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
-		default:
-			Menu = AJUSTES;
-		break;
-	}
-}
-
-void setMenuDisplay(String name, String arr)
-{
-	display.print(name);
-	display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
-	display.setTextSize(2);      // establece tamano de texto en 2
-	display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
-	display.print(arr);										//Muestra solo el array del menu principal
-	display.display(); 							//Muestra solo el array del menu principal
-}
-
-/* Funcion para imprimir en pantalla*/
-void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
-{
-	setConfigDisplay();
-	
-	if (count <= ROWNUM){
-		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
-		{
-			
-			display.setCursor(0,0);
-			display.setTextSize(1);
-  			display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
-
-			if (menu_submenu_state == MAIN){
-				setMenuDisplay("    Menu Principal", menu[i]);
-			}
-			else if (menu_submenu_state == AJUSTES_SUBMENU){
-				setMenuDisplay("        Ajustes", ajustes[i]);	
-			}
-			else if (menu_submenu_state == MEDICION_SUBMENU){
-				setMenuDisplay("       Medicion", medicion[i]);
-			}
-			else if (menu_submenu_state == HELICE_SUBMENU){	
-				setMenuDisplay("Config. Helices", helice[i]);
-			}
-			else if (menu_submenu_state == HELICE_1_SUBMENU){	
-				setMenuDisplay("Config. Helice 1", constante1[i]);
-			}
-			else if (menu_submenu_state == HELICE_2_SUBMENU){	
-				setMenuDisplay("Config. Helice 2", constante2[i]);
-			}
-			else if (menu_submenu_state == HELICE_3_SUBMENU){	
-				setMenuDisplay("Config. Helice 3", constante3[i]);
-			}
-		}
-	}
-}
-
+/* ---------------------------------------------------------------------------------------------- */
+/* State Machine related functions */
 
 /*Funcion que se encarga especificamente de tomar la medicion*/
-
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 {
 	switch(Menu)
@@ -664,7 +69,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		case TOMAR_MEDICION:
 
 		{
-
 			move_t buttonProcess = DONTMOVE;
 			bool buttonOut = 1;
 			while(buttonProcess != ENTER)								//Me aparto del codigo principal mientras el boton sea distinto de enter
@@ -1101,14 +505,253 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	
 	}
 	return 0;
-
-	
 }
+
+
+/* ---------------------------------------------------------------------------------------------- */
+/* Interrupts functions */
 
 void IRAM_ATTR isr_helice()
 {
 	contador_helice++;
 }
+
+
+// TODO: Hacer un wrapper de las funciones de display y separarlas del main.cpp
+/* ---------------------------------------------------------------------------------------------- */
+/* LCD related functions */
+
+// TODO: Checkear si se usa esta funcion
+void lcd_ClearOneLine(int row)
+{
+	for(uint8_t i=0; i < COLNUM ; i++)
+	{
+		display.setCursor(i,row);
+		display.print(" ");
+		display.display(); 
+	}
+}
+
+// TODO: Checkear si se usa esta funcion
+void lcd_ClearCursor(int row)
+{
+	display.setCursor(0,row);
+	display.print(" ");
+	display.display(); 
+}
+
+void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion que imprime las opciones en el display	
+{
+	switch(Menu)
+	{
+		case OUT:							//Se define el tope en el enum para no entrar en estados que no existen
+			Menu = AJUSTES;
+		break;
+
+		case AJUSTES:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);	//Donde comienza a mostrar, cuantos voy a mostrar
+		}
+		break;
+
+		case MEDICION:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ULT_MEDIDAS:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case CFG_HELICES:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case CFG_PERIODO:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+		
+		case REF_LUGAR:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case CFG_DATE:
+		{
+			lcd_PrintCursor(menu_submenu_state,3,1);
+		}
+		break;
+
+		case BUZZER:
+		{
+			lcd_PrintCursor(menu_submenu_state,4,1);
+		}
+		break;
+
+		case ATRAS_AJUSTES:
+		{
+			lcd_PrintCursor(menu_submenu_state,5,1);
+		}
+		break;
+
+		case INICIO_MEDICION:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case ATRAS_MEDICION:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case TOMAR_MEDICION:
+		{
+			//No va a hacer nada en la pantalla 
+		}
+		break;
+
+		case HELICE_1:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case HELICE_2:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case HELICE_3:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+		
+		case ATRAS_HELICE:
+		{
+			lcd_PrintCursor(menu_submenu_state,3,1);
+		}
+		break;
+
+		case VALOR_A1:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B1:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE_1:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case VALOR_A2:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B2:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE_2:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case VALOR_A3:
+		{
+			lcd_PrintCursor(menu_submenu_state,0,1);
+		}
+		break;
+
+		case VALOR_B3:
+		{
+			lcd_PrintCursor(menu_submenu_state,1,1);
+		}
+		break;
+
+		case ATRAS_HELICE_3:
+		{
+			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		default:
+			Menu = AJUSTES;
+		break;
+	}
+}
+
+void setMenuDisplay(String name, String arr)
+{
+	display.print(name);
+	display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+	display.setTextSize(2);      // establece tamano de texto en 2
+	display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+	display.print(arr);										//Muestra solo el array del menu principal
+	display.display(); 							//Muestra solo el array del menu principal
+}
+
+/* Funcion para imprimir en pantalla*/
+void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
+{
+	setConfigDisplay();
+	
+	if (count <= ROWNUM){
+		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
+		{
+			
+			display.setCursor(0,0);
+			display.setTextSize(1);
+  			display.setTextColor(WHITE);   // establece color al unico disponible (pantalla monocromo)
+
+			if (menu_submenu_state == MAIN){
+				setMenuDisplay("    Menu Principal", menu[i]);
+			}
+			else if (menu_submenu_state == AJUSTES_SUBMENU){
+				setMenuDisplay("        Ajustes", ajustes[i]);	
+			}
+			else if (menu_submenu_state == MEDICION_SUBMENU){
+				setMenuDisplay("       Medicion", medicion[i]);
+			}
+			else if (menu_submenu_state == HELICE_SUBMENU){	
+				setMenuDisplay("Config. Helices", helice[i]);
+			}
+			else if (menu_submenu_state == HELICE_1_SUBMENU){	
+				setMenuDisplay("Config. Helice 1", constante1[i]);
+			}
+			else if (menu_submenu_state == HELICE_2_SUBMENU){	
+				setMenuDisplay("Config. Helice 2", constante2[i]);
+			}
+			else if (menu_submenu_state == HELICE_3_SUBMENU){	
+				setMenuDisplay("Config. Helice 3", constante3[i]);
+			}
+		}
+	}
+}
+
 
 void setConfigDisplay(void)
 {
@@ -1147,5 +790,221 @@ void setConfigDisplayParam(String param_title)
   	display.write(0x1F);
 	display.setCursor(0,20);
   	display.setTextSize(2);
-	display.display(); 
+	display.display();
+}
+
+bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion esta el chekbutton
+{
+	static move_t lastButtonProcess = DONTMOVE;		//Variables que quedan fijas segun el ultimo llamado de la funcion
+	static uint8_t firstMenu = AJUSTES;
+	static uint8_t lastMenu = ULT_MEDIDAS;
+	static Menu_state_e lastMenuState = MAIN;
+
+	buttonProcess = CheckButton();					//Aqui se recibe, UP, DOWN, ENTER O DONT MOVE
+
+	if (buttonProcess != DONTMOVE)					//Si es distinto de DONTMOVE se hace algo 
+	{
+		lastButtonProcess = buttonProcess;
+		if (buttonProcess == DOWN){					//Si el boton fue DOWN 
+			if(estado_actual != lastMenu)			//Si el estado actual es distinto de el ultimo item del menu se suma uno
+			{
+				estado_actual = estado_actual + 1;
+			}
+		}
+		else if (buttonProcess == UP){				//Si el boton fue UP 
+			if(estado_actual != firstMenu)			//Si el estado actual es distinto del primer item del menu se resta uno
+		 	{
+				estado_actual = estado_actual - 1;
+			}
+		}
+		else if (buttonProcess == ENTER)		 	//Si se aprieta el boton enter se chequea en que estado esta
+		{
+			
+			if (lastButtonProcess == DOWN || lastButtonProcess == UP)	
+			{
+				display.clearDisplay();
+			}
+			switch(estado_actual)
+			{
+				case AJUSTES:						
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;			//Se pasa del MAIMENU al menu de ajustes
+					estado_actual = CFG_HELICES;					//Primer estado de este submenu	
+				}
+				break;
+				case ATRAS_AJUSTES:
+				{
+					menu_submenu_state = MAIN;						//Se pasa del menu de ajustes al MAINMENU
+					estado_actual = AJUSTES;						//Primer estado de este menu 
+				}
+				break;
+				case MEDICION:
+				{
+					menu_submenu_state = MEDICION_SUBMENU;			//Se pasa del MAIMENU al menu de medicion	
+					estado_actual = INICIO_MEDICION;				//Primer estado de este menu 
+				}
+				break;
+
+				case INICIO_MEDICION:
+				{
+					menu_submenu_state = MEDICION_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = TOMAR_MEDICION;				
+				}
+				break;
+
+				case ATRAS_MEDICION:
+				{
+					menu_submenu_state = MAIN;						//Se pasa del menu medicion al MAINMENU
+					estado_actual = AJUSTES;						//Primer estado de este menu 
+				}
+				break;
+
+				case CFG_PERIODO:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = TOMAR_PERIODO;				//Cuando se aprieta enter en config. periodo se pasa al estado config. periodo
+				}
+				break;
+
+				case CFG_HELICES:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case ATRAS_HELICE:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = CFG_HELICES;
+				}
+				break;
+
+				case HELICE_1:
+				{
+					menu_submenu_state = HELICE_1_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A1;				
+				}
+				break;
+
+				case ATRAS_HELICE_1:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A1:
+				{
+					menu_submenu_state = HELICE_1_SUBMENU;
+					estado_actual = SET_VALOR_A1;
+				}
+				break;
+
+				case VALOR_B1:
+				{
+					menu_submenu_state = HELICE_1_SUBMENU;
+					estado_actual = SET_VALOR_B1;
+				}
+				break;
+
+				case HELICE_2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A2;				
+				}
+				break;
+
+				case ATRAS_HELICE_2:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;
+					estado_actual = SET_VALOR_A2;
+				}
+				break;
+
+				case VALOR_B2:
+				{
+					menu_submenu_state = HELICE_2_SUBMENU;
+					estado_actual = SET_VALOR_B2;
+				}
+				break;
+
+				case HELICE_3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;  		//Cuando se aprieta enter en inicio medicion se pasa al estado tomar medicion
+					estado_actual = VALOR_A3;				
+				}
+				break;
+
+				case ATRAS_HELICE_3:
+				{
+					menu_submenu_state = HELICE_SUBMENU;
+					estado_actual = HELICE_1;
+				}
+				break;
+
+				case VALOR_A3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;
+					estado_actual = SET_VALOR_A3;
+				}
+				break;
+
+				case VALOR_B3:
+				{
+					menu_submenu_state = HELICE_3_SUBMENU;
+					estado_actual = SET_VALOR_B3;
+				}
+				break;
+
+
+			}
+		}
+
+		/*Definicion de primeros y ultimos elementos en cada menu*/
+		switch(menu_submenu_state)					
+		{
+		case MAIN: 
+			firstMenu = AJUSTES;
+			lastMenu = ULT_MEDIDAS; 
+			break;
+		case AJUSTES_SUBMENU: 
+			firstMenu = CFG_HELICES;
+			lastMenu = ATRAS_AJUSTES; 
+			break;
+		case MEDICION_SUBMENU:
+			firstMenu = INICIO_MEDICION;
+			lastMenu = ATRAS_MEDICION;
+			break;
+		case HELICE_SUBMENU:
+			firstMenu = HELICE_1;
+			lastMenu = ATRAS_HELICE;
+			break;
+		case HELICE_1_SUBMENU:
+			firstMenu = VALOR_A1;
+			lastMenu = ATRAS_HELICE_1;
+			break;
+		case HELICE_2_SUBMENU:
+			firstMenu = VALOR_A2;
+			lastMenu = ATRAS_HELICE_2;
+			break;
+		case HELICE_3_SUBMENU:
+			firstMenu = VALOR_A3;
+			lastMenu = ATRAS_HELICE_3;
+			break;
+		}
+		
+
+		Serial.println("Cambio de estado");
+		Serial.println(estado_actual);
+		return 1;
+	}
+	return 0;
 }
