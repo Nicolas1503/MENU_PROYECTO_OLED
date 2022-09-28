@@ -75,6 +75,7 @@ const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define ATRAS_HELICE_3 39
 #define SET_VALOR_A3 40
 #define SET_VALOR_B3 41
+#define SET_REF_LUGAR 42
 
 
 int PERIODO_MEMO;
@@ -152,7 +153,7 @@ Adafruit_SH1106 display(OLED_SDA, OLED_SCL);
 
 Preferences preferences;
 
-const int gpio_helice = 34; // Cambiar esto por el valor correcto
+uint8_t gpio_helice = 34; // Cambiar esto por el valor correcto
 int contador_helice = 0;
 
 void setup()
@@ -425,6 +426,13 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				{
 					menu_submenu_state = HELICE_3_SUBMENU;
 					estado_actual = SET_VALOR_B3;
+				}
+				break;
+
+				case REF_LUGAR:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = SET_REF_LUGAR;
 				}
 				break;
 
@@ -756,23 +764,23 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				uint8_t dotiter = 0;
 
 				/* Muestro el periodo en segundos*/
+				int periodo = preferences.getInt("PERIODO_MEMO", 0);
 				display.clearDisplay(); 
 				display.setCursor(0,0);
 				display.setTextSize(2);
   				display.setTextColor(WHITE);
-				display.print("T = ");
+				display.print("Midiendo");
+				display.setCursor(0,17);
+				display.print("T= ");
+				display.print(periodo/1000);
+				display.print(" Seg.");
 				display.display();
-				int periodo = preferences.getInt("PERIODO_MEMO", 0);
-				/*lcd.setCursor(4,0);
-				lcd.print(periodo/1000); //Convierto de milisegundos a segundos
-				lcd.print("sec");
-				*/
-
+				
 				unsigned long lastmillis = millis();
 				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
 
 				contador_helice = 0; // Pongo en 0 el contador de pulsos
-				attachInterrupt(gpio_helice, isr_helice, FALLING); // Habilita la interrupcion que va a contar los pulsos
+				attachInterrupt(digitalPinToInterrupt(gpio_helice), isr_helice, FALLING); // Habilita la interrupcion que va a contar los pulsos
 				while(buttonOut)
 				{
 					
@@ -786,15 +794,15 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						Esto es solo un ejemplo */
 					if(timedone == dotcount)
 					{
-						display.setCursor(dotiter,1);
+						display.setCursor(dotiter,33);
 						display.setTextSize(2);
   						display.setTextColor(WHITE);
 						display.print(".");
 						dotcount = dotcount + 1000.0;
 						display.display();
-						if(dotiter < 16)
+						if(dotiter < 128)
 						{
-							dotiter++;
+							dotiter = dotiter + 5;
 						}
 						else{
 							lcd_ClearOneLine(1);
@@ -803,20 +811,15 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					}
 				}
 				buttonProcess = ENTER;
-				detachInterrupt(gpio_helice); // Deshabilita la interrupcion y deja de contar pulsos
-
-				/* Leer valores de A y B de la memoria flash
-				int A1 = preferences.getInt("A1", 0);
-				int B1 = preferences.getInt("B1", 0);
-				*/
+				detachInterrupt(digitalPinToInterrupt(gpio_helice)); // Deshabilita la interrupcion y deja de contar pulsos
 				
 				float pulse = contador_helice;
 				float segundos = periodo/1000;
 		
 				/* Calcular con la ecuacion
-				int v = A*contador_helice/periodo + B;
 				*/
 				float v = A*(pulse/segundos) + B;
+				
 				/* Mostrar en pantalla de la velocidad y entrar en un loop 
 				donde la persona tenga que presionar enter para salir y dejar de ver la velocidad
 				*/
@@ -825,12 +828,14 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				display.setCursor(0,0);
 				display.setTextSize(2);
   				display.setTextColor(WHITE);
+				display.setCursor(0,0);
+				display.print("  Pulsos: ");
+				display.setCursor(54,17);
 				display.print(contador_helice);
-				display.setCursor(0,20);
-				display.print(A);
-				display.display();
-				display.setCursor(0,40);
-				display.print(v,4);
+				display.setCursor(0,33);
+				display.print("Velocidad:");
+				display.print(v);
+				display.print(" m/Seg");
 				display.display();
 				delay(10000);
 
@@ -849,7 +854,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			move_t buttonProcess = DONTMOVE;
 			int periodo = preferences.getInt("PERIODO_MEMO", 0);
 			setConfigDisplayParam("   Config. Periodo");
-			display.print(periodo);
+			display.print(periodo/1000);
+			display.print(" Seg.");
 			display.display();
 			
 			while(outPeriodo)
@@ -869,7 +875,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 						periodo = periodo + 5000;			//Si se oprime el boton hacia arriba se incrementa el periodo 
 						setConfigDisplayParam("   Config. Periodo");
-						display.print(periodo);
+						display.print(periodo/1000);
+						display.print(" Seg.");
 						display.display();
 					}
 					break;
@@ -880,7 +887,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 							periodo = periodo - 5000;
 						}
 						setConfigDisplayParam("   Config. Periodo");
-						display.print(periodo);
+						display.print(periodo/1000);
+						display.print(" Seg.");
 						display.display();
 					}
 					break;
@@ -1306,6 +1314,54 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 		}
 		break;
+
+	case SET_REF_LUGAR:
+	{
+			bool outRef_Lugar = 1;
+			move_t buttonProcess = DONTMOVE;
+			int ID_LUGAR = preferences.getInt("ID_LUGAR", 0);
+			setConfigDisplayParam("  ID de Referencia");
+			display.print(ID_LUGAR);
+			display.display();
+			
+			while(outRef_Lugar)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					case ENTER:
+					{
+						outRef_Lugar = 0;
+						estado_actual = REF_LUGAR;
+					}
+					break;
+
+					case UP:
+					{
+						ID_LUGAR = ID_LUGAR + 1;			//Si se oprime el boton hacia arriba se incrementa el periodo 
+						setConfigDisplayParam("  ID de Referencia");
+						display.print(ID_LUGAR);
+						display.display();
+					}
+					break;
+
+					case DOWN:
+					{
+								
+						ID_LUGAR = ID_LUGAR - 1;
+						setConfigDisplayParam("  ID de Referencia");
+						display.print(ID_LUGAR);
+						display.display();
+					}
+					break;
+				}
+			}
+			preferences.putInt("ID_LUGAR", ID_LUGAR);
+			
+
+		}
+		break;
 	
 	
 	}
@@ -1354,7 +1410,7 @@ void setConfigDisplayParam(String param_title)
   	display.setCursor(121,56);
   	display.cp437(true);
   	display.write(0x1F);
-	display.setCursor(0,20);
+	display.setCursor(30,20);
   	display.setTextSize(2);
 	display.display(); 
 }
