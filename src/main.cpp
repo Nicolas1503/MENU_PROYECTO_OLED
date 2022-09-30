@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "button.hpp"
 #include <Preferences.h> 
-#include "../include/display/display_mod.h"
+#include "../lib/display/display_mod.h"
 
 #define MAXITEMS 20						//Cantidad de posiciones en el display
 
