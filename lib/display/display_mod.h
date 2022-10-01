@@ -11,13 +11,14 @@
 #define COLNUM 128
 
 void display_begin(void);
+void display_clear(void);
 void lcd_ClearOneLine(int row);
 void lcd_ClearCursor(int row);
-void setMenuDisplay(String name, String arr);
-void setConfigDisplayParam(String param_title, float param_value, String param_unit);
-void setConfigDisplay(void);
-void display_clear(void);
-void display_ShowPeriod(int periodo);
-void display_ShowDotiter(void);
+void display_background(bool modo_flechas);
+void display_showmenu(String menu_title, String arr);
+void display_showparam(String param_title, float param_value, bool entero, String param_unit);
+void display_MedicionMode(uint8_t helice_num,int periodo);
+void display_ShowDotiter(uint8_t dot_iter, float dot_count);
 void display_ShowSpeed(int cuenta, float velocidad );
-void display_ShowHeliceSelected(String title_helice, float value_A, float value_B);
+void display_ShowHeliceSelected(uint8_t helice_num, float value_A, float value_B);
+void display_ShowMedidaGuardada(String file_name);

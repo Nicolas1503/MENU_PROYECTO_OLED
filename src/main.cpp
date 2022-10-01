@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "button.hpp"
+#include "FS.h"
+#include "SD.h"
 #include <Preferences.h> 
 #include "../lib/display/display_mod.h"
 
@@ -7,22 +9,24 @@
 
 #define MAINMENU_NUM 3					//Cantidad de chars en el mainmenu
 #define AJUSTES_NUM 6					//Cantidad de chars en el menu ajustes
-#define MEDICION_NUM 3					//Cantidad de chars en el menu medicion
+#define MEDICION_NUM 5					//Cantidad de chars en el menu medicion
 #define SELECT_HELICE_NUM 4
 #define HELICE_NUM 4
 #define HELICE1_NUM 3
 #define HELICE2_NUM 3
 #define HELICE3_NUM 3
 
+
 /*Matriz de dos dimensiones para definir los menues*/
 const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
 const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
-const char medicion[MEDICION_NUM][MAXITEMS] = {"  Elegir    Helice","  Inicio","  Atras"};
+const char medicion[MEDICION_NUM][MAXITEMS] = {"  Elegir    Helice","  Inicio","  Guardar  Medicion", "  Enviar   Medicion", "Atras"};
 const char helicemed[SELECT_HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
 const char helice[HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
 const char helice1[HELICE1_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 const char helice2[HELICE2_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
+
 
 /*Definicion de menues, submenues y acciones*/
 
@@ -38,42 +42,47 @@ const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define ATRAS_AJUSTES 10
 #define SELECT_HELICES 11
 #define INICIO_MEDICION 12
-#define ATRAS_MEDICION 13
-#define SELECT_HELICE_1 14
-#define SELECT_HELICE_2 15
-#define SELECT_HELICE_3 16
-#define ATRAS_SELECT_HELICES 17
-#define SET_HELICE_1 18
-#define SET_HELICE_2 19
-#define SET_HELICE_3 20
-#define TOMAR_MEDICION 21
-#define TOMAR_PERIODO 22
-#define HELICE_1 23
-#define HELICE_2 24
-#define HELICE_3 25
-#define ATRAS_HELICE 26
-#define VALOR_A1 27
-#define VALOR_B1 28
-#define ATRAS_HELICE_1 29
-#define SET_VALOR_A1 30
-#define SET_VALOR_B1 31
-#define VALOR_A2 32
-#define VALOR_B2 33
-#define ATRAS_HELICE_2 34
-#define SET_VALOR_A2 35
-#define SET_VALOR_B2 36
-#define VALOR_A3 37
-#define VALOR_B3 38
-#define ATRAS_HELICE_3 39
-#define SET_VALOR_A3 40
-#define SET_VALOR_B3 41
-#define SET_REF_LUGAR 42
+#define GUARDAR_MEDICION 13
+#define ENVIAR_MEDICION 14
+#define ATRAS_MEDICION 15
+#define SELECT_HELICE_1 16
+#define SELECT_HELICE_2 17
+#define SELECT_HELICE_3 18
+#define ATRAS_SELECT_HELICES 19
+#define SET_HELICE_1 20
+#define SET_HELICE_2 21
+#define SET_HELICE_3 22
+#define TOMAR_MEDICION 23
+#define TOMAR_PERIODO 24
+#define HELICE_1 25
+#define HELICE_2 26
+#define HELICE_3 27
+#define ATRAS_HELICE 28
+#define VALOR_A1 29
+#define VALOR_B1 30
+#define ATRAS_HELICE_1 31
+#define SET_VALOR_A1 32
+#define SET_VALOR_B1 33
+#define VALOR_A2 34
+#define VALOR_B2 35
+#define ATRAS_HELICE_2 36
+#define SET_VALOR_A2 37
+#define SET_VALOR_B2 38
+#define VALOR_A3 39
+#define VALOR_B3 40
+#define ATRAS_HELICE_3 41
+#define SET_VALOR_A3 42
+#define SET_VALOR_B3 43
+#define SET_REF_LUGAR 44
+#define SET_GUARDAR_MEDICION 45
 
 
+uint8_t NUM_HELICE = 0;
 int PERIODO_MEMO;
 
 float A = 0.00; 
 float B = 0.00;
+float VELOCIDAD = 0.00;
 
 
 /*Definicion de ubicacion dentro del menu*/
@@ -85,7 +94,7 @@ typedef enum{
 	HELICE_SUBMENU,
 	HELICE_1_SUBMENU,
 	HELICE_2_SUBMENU,
-	HELICE_3_SUBMENU
+	HELICE_3_SUBMENU,
 
 }Menu_state_e;
 
@@ -107,9 +116,9 @@ typedef enum{
 
 /*Definicion de pines*/
 const bool pullup = true;
-const int up_button = 5;
-const int down_button = 18;
-const int enter_button = 19;
+const int up_button = 13;
+const int down_button = 14;
+const int enter_button = 12;
 move_t buttonProcess = DONTMOVE;
 
 /*Botones como pull up*/
@@ -122,11 +131,6 @@ uint8_t estado_anterior;
 Menu_state_e menu_submenu_state;
 row_t ROW_STATUS;
 
-
-/*void SetEEPROMValueF(int address, float value);
-void UpdateEEPROMValueF(int adress, float value);
-float GetEEPROMValueF(int address);*/
-
 move_t CheckButton(void);
 
 bool lcd_UpdateCursor(uint8_t Menu, int row, int col);
@@ -135,7 +139,8 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 void IRAM_ATTR isr_helice();
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
-
+void writeFile(fs::FS &fs, const char * path, const char * message);
+void appendFile(fs::FS &fs, const char * path, const char * message);
 
 Preferences preferences;
 
@@ -144,8 +149,14 @@ int contador_helice = 0;
 
 void setup()
 {
-  	Wire.begin();         // inicializa bus I2C
+  	Serial.begin(9600);
+	Wire.begin();         // inicializa bus I2C
  	display_begin();
+
+	if(!SD.begin()){
+        Serial.println("Card Mount Failed");
+        return;
+    }
 
   	estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
  	estado_anterior = AJUSTES;
@@ -168,24 +179,6 @@ void loop(void)
 		}
 	}
 }
-
-
-/*float GetEEPROMValueF(const char [7],int)
-{
-    float val;
-    return preferences.getFloat("param", 0);
-}
-
-void SetEEPROMValueF(const char [7],float)
-{
-   preferences.putFloat("param", param);  
-}
-
-void UpdateEEPROMValueF(int address, float value)
-{
-	EEPROM.update(address,value);
-}*/
-
 
 /*Funcion que chequea que boton esta presionado*/
 move_t CheckButton(void)
@@ -422,6 +415,13 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				}
 				break;
 
+				case GUARDAR_MEDICION:
+				{
+					menu_submenu_state = MEDICION_SUBMENU;
+					estado_actual = SET_GUARDAR_MEDICION;
+				}
+				break;
+
 
 			}
 		}
@@ -457,6 +457,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 			firstMenu = VALOR_A3;
 			lastMenu = ATRAS_HELICE_3;
 			break;
+		
 		}
 		
 
@@ -547,9 +548,21 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-		case ATRAS_MEDICION:
+		case GUARDAR_MEDICION:
 		{
 			lcd_PrintCursor(menu_submenu_state,2,1);
+		}
+		break;
+
+		case ENVIAR_MEDICION:
+		{
+			lcd_PrintCursor(menu_submenu_state,3,1);
+		}
+		break;
+
+		case ATRAS_MEDICION:
+		{
+			lcd_PrintCursor(menu_submenu_state,4,1);
 		}
 		break;
 
@@ -671,35 +684,36 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 /* Funcion para imprimir en pantalla*/
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
 {
-	setConfigDisplay();
+	display_background(true);
 	
 	if (count <= ROWNUM){
 		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
 		{
 			if (menu_submenu_state == MAIN){
-				setMenuDisplay("    Menu Principal", menu[i]);
+				display_showmenu("    Menu Principal", menu[i]);
 			}
 			else if (menu_submenu_state == AJUSTES_SUBMENU){
-				setMenuDisplay("        Ajustes", ajustes[i]);	
+				display_showmenu("        Ajustes", ajustes[i]);	
 			}
 			else if (menu_submenu_state == MEDICION_SUBMENU){
-				setMenuDisplay("       Medicion", medicion[i]);
+				display_showmenu("       Medicion", medicion[i]);
 			}
 			else if (menu_submenu_state == SELECT_HELICE_SUBMENU){
-				setMenuDisplay("Seleccion de Helice", helicemed[i]);
+				display_showmenu("Seleccion de Helice", helicemed[i]);
 			}
 			else if (menu_submenu_state == HELICE_SUBMENU){	
-				setMenuDisplay("Config. Helices", helice[i]);
+				display_showmenu("Config. Helices", helice[i]);
 			}
 			else if (menu_submenu_state == HELICE_1_SUBMENU){	
-				setMenuDisplay("Config. Helice 1", helice1[i]);
+				display_showmenu("Config. Helice 1", helice1[i]);
 			}
 			else if (menu_submenu_state == HELICE_2_SUBMENU){	
-				setMenuDisplay("Config. Helice 2", helice2[i]);
+				display_showmenu("Config. Helice 2", helice2[i]);
 			}
 			else if (menu_submenu_state == HELICE_3_SUBMENU){	
-				setMenuDisplay("Config. Helice 3", helice3[i]);
+				display_showmenu("Config. Helice 3", helice3[i]);
 			}
+
 		}
 	}
 }
@@ -719,10 +733,13 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool buttonOut = 1;
 			while(buttonProcess != ENTER)								//Me aparto del codigo principal mientras el boton sea distinto de enter
 			{
-
+				float dotcount = 1000.0;
+				uint8_t dotiter = 0;
+				
 				/* Muestro el periodo en segundos*/
 				int periodo = preferences.getInt("PERIODO_MEMO", 0);
-				display_ShowPeriod(periodo);
+				
+				display_MedicionMode(NUM_HELICE,periodo);
 				
 				unsigned long lastmillis = millis();
 				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
@@ -731,7 +748,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				attachInterrupt(digitalPinToInterrupt(gpio_helice), isr_helice, FALLING); // Habilita la interrupcion que va a contar los pulsos
 				while(buttonOut)
 				{
-					float dotcount = 1000.0;
+					
 					timedone = millis() - lastmillis;
 					if(timedone >= periodo || CheckButton() == ENTER)
 					{
@@ -742,7 +759,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						Esto es solo un ejemplo */
 					if(timedone == dotcount)
 					{
-						display_ShowDotiter();
+						display_ShowDotiter(dotiter, dotcount);
 					}
 				}
 				buttonProcess = ENTER;
@@ -753,18 +770,22 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		
 				/* Calcular con la ecuacion
 				*/
-				float v = A*(pulse/segundos) + B;
+				VELOCIDAD = A*(pulse/segundos) + B;
 				
 				/* Mostrar en pantalla de la velocidad y entrar en un loop 
 				donde la persona tenga que presionar enter para salir y dejar de ver la velocidad
 				*/
 
-				display_ShowSpeed(contador_helice, v);
-				delay(10000);
+				display_ShowSpeed(contador_helice, VELOCIDAD);
+				
+				while(CheckButton() != ENTER)
+				{
+					//esperar a pulsar enter
+				}
 
 			
 			}
-			estado_actual = INICIO_MEDICION;
+			estado_actual = GUARDAR_MEDICION;
 			return 1;
 			
 		}
@@ -776,8 +797,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outPeriodo = 1;
 			move_t buttonProcess = DONTMOVE;
 			int periodo = preferences.getInt("PERIODO_MEMO", 0);
-			setConfigDisplayParam("   Config. Periodo", periodo, " Seg.");
-			
+			display_background(false);
+			display_showparam("   Config. Periodo", periodo/1000, true, " Seg.");
 			while(outPeriodo)
 			{
 				buttonProcess = CheckButton();
@@ -794,7 +815,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						periodo = periodo + 5000;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("   Config. Periodo", periodo, " Seg.");
+						display_background(false);
+						display_showparam("   Config. Periodo", periodo/1000, true, " Seg.");
 					}
 					break;
 
@@ -803,7 +825,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						if((periodo - 5000) != 0){			//Si se oprime el boton hacia arriba se decrementa el periodo 
 							periodo = periodo - 5000;
 						}
-						setConfigDisplayParam("   Config. Periodo", periodo, " Seg.");
+						display_background(false);
+						display_showparam("   Config. Periodo", periodo/1000, true,  " Seg.");
 					}
 					break;
 				}
@@ -820,7 +843,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_A1 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_A1 = preferences.getFloat("CONSTANTE_A1", 0);
-			setConfigDisplayParam("  Valor A Helice 1", CONSTANTE_A1, " ");
+			display_background(false);
+			display_showparam("  Valor A Helice 1", CONSTANTE_A1, false," ");
 			
 			while(outConstante_A1)
 			{
@@ -838,7 +862,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_A1 = CONSTANTE_A1 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("  Valor A Helice 1", CONSTANTE_A1, " ");
+						display_background(false);
+						display_showparam("  Valor A Helice 1", CONSTANTE_A1, false, " ");
 					}
 					break;
 
@@ -846,7 +871,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_A1 = CONSTANTE_A1 - 0.01;
-						setConfigDisplayParam("  Valor A Helice 1", CONSTANTE_A1, " ");
+						display_background(false);
+						display_showparam("  Valor A Helice 1", CONSTANTE_A1, false, " ");
 					}
 					break;
 				}
@@ -862,7 +888,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_B1 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_B1 = preferences.getFloat("CONSTANTE_B1", 0);
-			setConfigDisplayParam("  Valor B Helice 1", CONSTANTE_B1, " ");
+			display_background(false);
+			display_showparam("  Valor B Helice 1", CONSTANTE_B1, false, " ");
 			
 			while(outConstante_B1)
 			{
@@ -880,7 +907,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_B1 = CONSTANTE_B1 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("  Valor B Helice 1", CONSTANTE_B1, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 1", CONSTANTE_B1, false, " ");
 					}
 					break;
 
@@ -888,7 +916,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_B1 = CONSTANTE_B1 - 0.01;
-							setConfigDisplayParam("  Valor B Helice 1", CONSTANTE_B1, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 1", CONSTANTE_B1, false, " ");
 					}
 					break;
 				}
@@ -904,7 +933,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_A2 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_A2 = preferences.getFloat("CONSTANTE_A2", 0);
-			setConfigDisplayParam("   Valor A Helice 2", CONSTANTE_A2, " ");
+			display_background(false);
+			display_showparam("   Valor A Helice 2", CONSTANTE_A2, false, " ");
 			
 			while(outConstante_A2)
 			{
@@ -922,7 +952,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_A2 = CONSTANTE_A2 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("   Valor A Helice 2", CONSTANTE_A2, " ");
+						display_background(false);
+						display_showparam("   Valor A Helice 2", CONSTANTE_A2, false,  " ");
 					}
 					break;
 
@@ -930,7 +961,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_A2 = CONSTANTE_A2 - 0.01;
-						setConfigDisplayParam("   Valor A Helice 2", CONSTANTE_A2, " ");
+						display_background(false);
+						display_showparam("   Valor A Helice 2", CONSTANTE_A2, false, " ");
 					}
 					break;
 				}
@@ -946,7 +978,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_B2 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_B2 = preferences.getFloat("CONSTANTE_B2", 0);
-			setConfigDisplayParam("  Valor B Helice 2", CONSTANTE_B2, " ");
+			display_background(false);
+			display_showparam("  Valor B Helice 2", CONSTANTE_B2, false, " ");
 			
 			while(outConstante_B2)
 			{
@@ -964,7 +997,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_B2 = CONSTANTE_B2 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("  Valor B Helice 2", CONSTANTE_B2, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 2", CONSTANTE_B2, false, " ");
 					}
 					break;
 
@@ -972,7 +1006,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_B2 = CONSTANTE_B2 - 0.01;
-						setConfigDisplayParam("  Valor B Helice 2", CONSTANTE_B2, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 2", CONSTANTE_B2, false, " ");
 					}
 					break;
 				}
@@ -988,7 +1023,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_A3 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_A3 = preferences.getFloat("CONSTANTE_A3", 0);
-			setConfigDisplayParam("   Valor A Helice 3", CONSTANTE_A3, " ");
+			display_background(false);
+			display_showparam("   Valor A Helice 3", CONSTANTE_A3, false, " ");
 			
 			while(outConstante_A3)
 			{
@@ -1006,7 +1042,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_A3 = CONSTANTE_A3 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("   Valor A Helice 3", CONSTANTE_A3, " ");
+						display_background(false);
+						display_showparam("   Valor A Helice 3", CONSTANTE_A3, false, " ");
 					}
 					break;
 
@@ -1014,7 +1051,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_A3 = CONSTANTE_A3 - 0.01;
-						setConfigDisplayParam("   Valor A Helice 3", CONSTANTE_A3, " ");
+						display_background(false);
+						display_showparam("   Valor A Helice 3", CONSTANTE_A3, false, " ");
 					}
 					break;
 				}
@@ -1030,7 +1068,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outConstante_B3 = 1;
 			move_t buttonProcess = DONTMOVE;
 			float CONSTANTE_B3 = preferences.getFloat("CONSTANTE_B3", 0);
-			setConfigDisplayParam("  Valor B Helice 3", CONSTANTE_B3, " ");
+			display_background(false);
+			display_showparam("  Valor B Helice 3", CONSTANTE_B3, false, " ");
 			
 			while(outConstante_B3)
 			{
@@ -1048,7 +1087,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						CONSTANTE_B3 = CONSTANTE_B3 + 0.01;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("  Valor B Helice 3", CONSTANTE_B3, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 3", CONSTANTE_B3, false, " ");
 					}
 					break;
 
@@ -1056,7 +1096,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						CONSTANTE_B3 = CONSTANTE_B3 - 0.01;
-						setConfigDisplayParam("  Valor B Helice 3", CONSTANTE_B3, " ");
+						display_background(false);
+						display_showparam("  Valor B Helice 3", CONSTANTE_B3, false, " ");
 					}
 					break;
 				}
@@ -1072,7 +1113,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool outRef_Lugar = 1;
 			move_t buttonProcess = DONTMOVE;
 			int ID_LUGAR = preferences.getInt("ID_LUGAR", 0);
-			setConfigDisplayParam("  ID de Referencia", ID_LUGAR, " ");
+			display_background(false);
+			display_showparam("  ID de Referencia", ID_LUGAR, true, " ");
 			
 			while(outRef_Lugar)
 			{
@@ -1090,7 +1132,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case UP:
 					{
 						ID_LUGAR = ID_LUGAR + 1;			//Si se oprime el boton hacia arriba se incrementa el periodo 
-						setConfigDisplayParam("  ID de Referencia", ID_LUGAR, " ");
+						display_background(false);
+						display_showparam("  ID de Referencia", ID_LUGAR, true, " ");
 					}
 					break;
 
@@ -1098,7 +1141,8 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					{
 								
 						ID_LUGAR = ID_LUGAR - 1;
-							setConfigDisplayParam("  ID de Referencia", ID_LUGAR, " ");
+						display_background(false);
+						display_showparam("  ID de Referencia", ID_LUGAR, true, " ");
 					}
 					break;
 				}
@@ -1113,9 +1157,10 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	{		
 			bool outHelice1 = 1;
 			move_t buttonProcess = DONTMOVE;
+			NUM_HELICE = 1;
 			A = preferences.getFloat("CONSTANTE_A1", 0);
 			B = preferences.getFloat("CONSTANTE_B1", 0);
-			display_ShowHeliceSelected("Valores Helice 1", A, B);
+			display_ShowHeliceSelected(NUM_HELICE, A, B);
 			
 			while(outHelice1)
 			{
@@ -1144,9 +1189,10 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	{		
 			bool outHelice2 = 1;
 			move_t buttonProcess = DONTMOVE;
+			NUM_HELICE = 2;
 			A = preferences.getFloat("CONSTANTE_A2", 0);
 			B = preferences.getFloat("CONSTANTE_B2", 0);
-			display_ShowHeliceSelected("Valores Helice 2", A, B);
+			display_ShowHeliceSelected(NUM_HELICE, A, B);
 			
 			while(outHelice2)
 			{
@@ -1175,9 +1221,10 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	{		
 			bool outHelice3 = 1;
 			move_t buttonProcess = DONTMOVE;
+			NUM_HELICE = 3;
 			A = preferences.getFloat("CONSTANTE_A3", 0);
 			B = preferences.getFloat("CONSTANTE_B3", 0);
-			display_ShowHeliceSelected("Valores Helice 3", A, B);
+			display_ShowHeliceSelected(NUM_HELICE, A, B);
 			
 			while(outHelice3)
 			{
@@ -1202,10 +1249,95 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 		}
 		break;
 	
+	
+	case SET_GUARDAR_MEDICION:
+	{
+			bool outGuardar_Medicion = 1;
+			move_t buttonProcess = DONTMOVE;
+			int ID_LUGAR = preferences.getInt("ID_LUGAR", 0);
+			int PERIODO_MEDIDO = preferences.getInt("PERIODO_MEMO", 0);
+			String ID_TITLE;
+			String DATO_MEDIDO;
+			String ESP1 = "       ";
+			String ESP2 ="              ";
+			ID_TITLE = "/ID_" + String(ID_LUGAR) + ".txt";
+
+			File file = SD.open(ID_TITLE.c_str());
+    		if(!file) {
+   			Serial.println("El archivo no existe");
+    		Serial.println("Creando archivo...");
+    		writeFile(SD, ID_TITLE.c_str(), "Velocidad(m/Seg.)| Periodo| Helice|  Constante A| Constante B\r\n");
+    		}
+    		else {
+    		Serial.println("El archivo ya existe");  
+      		}
+    		file.close();
+
+			DATO_MEDIDO = String(VELOCIDAD)+ ESP2 + String(PERIODO_MEDIDO/1000)+ ESP1 + String(NUM_HELICE)+ ESP2+ String(A)+ ESP1 + String (B) + "\r\n";
+			appendFile(SD, ID_TITLE.c_str(), DATO_MEDIDO.c_str());
+			display_ShowMedidaGuardada(ID_TITLE);
+			
+			
+			while(outGuardar_Medicion)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					
+					case UP: break;
+					
+					case DOWN: break;
+					
+					case ENTER:
+					{
+						outGuardar_Medicion = 0;
+						estado_actual = ENVIAR_MEDICION;
+					}
+					break;
+
+					
+				}
+			}
+		}
+		break;
+	
 	}
 	return 0;
 
 	
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("File written");
+    } else {
+        Serial.println("Write failed");
+    }
+    file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Appending to file: %s\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("Message appended");
+    } else {
+        Serial.println("Append failed");
+    }
+    file.close();
 }
 
 void IRAM_ATTR isr_helice()
