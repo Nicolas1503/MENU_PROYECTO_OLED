@@ -115,9 +115,9 @@ typedef enum{
 
 /*Definicion de pines*/
 const bool pullup = true;
-const int up_button = 5;
-const int down_button = 18;
-const int enter_button = 19;
+const int up_button = 13;
+const int down_button = 14;
+const int enter_button = 12;
 move_t buttonProcess = DONTMOVE;
 
 /*Botones como pull up*/
