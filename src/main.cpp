@@ -4,6 +4,16 @@
 #include "SD.h"
 #include <Preferences.h> 
 #include "../lib/display/display_mod.h"
+#include <SPI.h>
+#include <Lora.h>
+#include "../lib/rtc/rtc_mod.h"
+
+
+#define ss_lora 5
+#define rst 25
+#define dio0 33
+
+#define ss_SD 15
 
 #define MAXITEMS 20						//Cantidad de posiciones en el display
 
@@ -37,7 +47,7 @@ const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define CFG_HELICES 5
 #define CFG_PERIODO 6
 #define REF_LUGAR 7
-#define CFG_DATE 8
+#define FECHA_HORA 8
 #define BUZZER 9
 #define ATRAS_AJUSTES 10
 #define SELECT_HELICES 11
@@ -75,6 +85,8 @@ const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define SET_VALOR_B3 43
 #define SET_REF_LUGAR 44
 #define SET_GUARDAR_MEDICION 45
+#define SET_ENVIAR_MEDICION 46
+#define SET_FECHA_HORA 47
 
 
 uint8_t NUM_HELICE = 0;
@@ -144,28 +156,51 @@ void appendFile(fs::FS &fs, const char * path, const char * message);
 
 Preferences preferences;
 
+
 uint8_t gpio_helice = 34; // Cambiar esto por el valor correcto
 int contador_helice = 0;
+
+String SEGUNDO, MINUTO, HORA, DIA_MES, MES, YEAR;
+
 
 void setup()
 {
   	Serial.begin(9600);
 	Wire.begin();         // inicializa bus I2C
  	display_begin();
-
-	if(!SD.begin()){
+	
+	if(!SD.begin(ss_SD)){
         Serial.println("Card Mount Failed");
-        return;
-    }
+        //return;
+    }else{
+		Serial.println("Card Init");
+	}
 
-  	estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
- 	estado_anterior = AJUSTES;
-  	menu_submenu_state = MAIN;			//Menu actual esta en el principal
+	delay(1000);
+
+	LoRa.setPins(ss_lora, rst, dio0);
+	pinMode(ss_lora, OUTPUT);
+	digitalWrite(ss_lora, HIGH);
+	  
+	  if (LoRa.begin(433E6)) {
+		Serial.println("LoRa init succeeded.");
+		LoRa.setSpreadingFactor(12);           // ranges from 6-12,default 7 see API docsLoRa.setSpreadingFactor(12);
+		LoRa.setSignalBandwidth(62.5E3);
+		LoRa.setCodingRate4(8);
+	  }else{
+		Serial.println("Starting LoRa failed!");
+	  }
+
+
+estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
+estado_anterior = AJUSTES;
+menu_submenu_state = MAIN;			//Menu actual esta en el principal
 
   	
-	lcd_DisplayMenu(estado_actual, menu_submenu_state);			//Se muestra en el display lo que se declaro
+lcd_DisplayMenu(estado_actual, menu_submenu_state);			//Se muestra en el display lo que se declaro
 
-	preferences.begin("myfile", false);
+preferences.begin("myfile", false);
+
 }
 void loop(void)								
 {
@@ -415,10 +450,24 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				}
 				break;
 
+				case FECHA_HORA:
+				{
+					menu_submenu_state = AJUSTES_SUBMENU;
+					estado_actual = SET_FECHA_HORA;
+				}
+				break;
+
 				case GUARDAR_MEDICION:
 				{
 					menu_submenu_state = MEDICION_SUBMENU;
 					estado_actual = SET_GUARDAR_MEDICION;
+				}
+				break;
+
+				case ENVIAR_MEDICION:
+				{
+					menu_submenu_state = MEDICION_SUBMENU;
+					estado_actual = SET_ENVIAR_MEDICION;
 				}
 				break;
 
@@ -518,7 +567,7 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-		case CFG_DATE:
+		case FECHA_HORA:
 		{
 			lcd_PrintCursor(menu_submenu_state,3,1);
 		}
@@ -685,7 +734,7 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t count) //Estados, donde comienza en el array que corresponde
 {
 	display_background(true);
-	
+
 	if (count <= ROWNUM){
 		for (uint8_t i=start; i<count+start; i++)				//Cuenta para mostrar los menu en la pantalla
 		{
@@ -1152,6 +1201,43 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 		}
 		break;
+
+		case SET_FECHA_HORA:
+	{
+			bool outFecha_Hora = 1;
+			move_t buttonProcess = DONTMOVE;
+			
+			HORA = leeHora();
+			MINUTO = leeMinuto();
+			SEGUNDO = leeSegundo();
+			DIA_MES = leeDiaMes();
+			MES = leeMes();
+			YEAR = leeAnio();
+
+			display_showFechaHora(SEGUNDO, MINUTO, HORA);
+			
+			while(outFecha_Hora)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					
+					case UP:break;
+					
+					case DOWN:break;
+					
+					case ENTER:
+					{
+						outFecha_Hora = 0;
+						estado_actual = FECHA_HORA;
+					}
+					break;
+				}
+			}
+			
+		}
+		break;
 	
 	case SET_HELICE_1:
 	{		
@@ -1258,22 +1344,27 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			int PERIODO_MEDIDO = preferences.getInt("PERIODO_MEMO", 0);
 			String ID_TITLE;
 			String DATO_MEDIDO;
-			String ESP1 = "       ";
-			String ESP2 ="              ";
-			ID_TITLE = "/ID_" + String(ID_LUGAR) + ".txt";
+			ID_TITLE = "/ID_" + String(ID_LUGAR) + ".csv";
+
+			HORA = leeHora();
+			MINUTO = leeMinuto();
+			SEGUNDO = leeSegundo();
+			DIA_MES = leeDiaMes();
+			MES = leeMes();
+			YEAR = leeAnio();
 
 			File file = SD.open(ID_TITLE.c_str());
     		if(!file) {
    			Serial.println("El archivo no existe");
     		Serial.println("Creando archivo...");
-    		writeFile(SD, ID_TITLE.c_str(), "Velocidad(m/Seg.)| Periodo| Helice|  Constante A| Constante B\r\n");
+    		writeFile(SD, ID_TITLE.c_str(), "Velocidad(m/Seg.);Periodo;Helice;Constante A;Constante B;Hora;Fecha\r\n");
     		}
     		else {
     		Serial.println("El archivo ya existe");  
       		}
     		file.close();
 
-			DATO_MEDIDO = String(VELOCIDAD)+ ESP2 + String(PERIODO_MEDIDO/1000)+ ESP1 + String(NUM_HELICE)+ ESP2+ String(A)+ ESP1 + String (B) + "\r\n";
+			DATO_MEDIDO = String(VELOCIDAD)+";"+String(PERIODO_MEDIDO/1000)+";"+String(NUM_HELICE)+";"+String(A)+";"+String (B)+";"+String (HORA)+":"+ String(MINUTO)+":"+String(SEGUNDO)+";"+String(DIA_MES)+"/"+String(MES)+"/"+String(YEAR)+"\r\n";
 			appendFile(SD, ID_TITLE.c_str(), DATO_MEDIDO.c_str());
 			display_ShowMedidaGuardada(ID_TITLE);
 			
@@ -1292,6 +1383,51 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outGuardar_Medicion = 0;
+						estado_actual = ENVIAR_MEDICION;
+					}
+					break;
+
+					
+				}
+			}
+		}
+		break;
+	
+	case SET_ENVIAR_MEDICION:
+	{
+			bool outEnviar_Medicion = 1;
+			move_t buttonProcess = DONTMOVE;
+			int PERIODO_MEDIDO = preferences.getInt("PERIODO_MEMO", 0);
+
+  			// send packet
+  			LoRa.beginPacket();
+			LoRa.print("Velocidad: ");
+  			LoRa.print(VELOCIDAD);
+			LoRa.print(" m/seg. ");
+			LoRa.print("T: ");
+			LoRa.print(PERIODO_MEDIDO/1000);
+			LoRa.print( "seg.");
+			LoRa.print("Helice :");
+			LoRa.print(NUM_HELICE);
+			LoRa.endPacket();
+
+			display_ShowMedidaEnviada();
+			
+			
+			while(outEnviar_Medicion)
+			{
+				buttonProcess = CheckButton();
+				switch(buttonProcess)
+				{
+					case DONTMOVE:break;
+					
+					case UP: break;
+					
+					case DOWN: break;
+					
+					case ENTER:
+					{
+						outEnviar_Medicion = 0;
 						estado_actual = ENVIAR_MEDICION;
 					}
 					break;

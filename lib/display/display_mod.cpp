@@ -177,3 +177,39 @@ void display_ShowMedidaGuardada(String file_name){
   	display.print("OK"); 
 	display.display();
 }
+
+void display_ShowMedidaEnviada(void){
+	display.clearDisplay();
+	display.drawRect(0, 0, 128, 52, WHITE); // dibuja rectangulo
+	display.drawLine(0, 40, 128, 40, WHITE);
+	display.drawLine(0, 54, 128, 54, WHITE);
+	display.setCursor(15,5);
+	display.setTextColor(WHITE);
+	display.setTextSize(2);
+	display.print("Enviado");
+	display.setCursor(5,42);
+	display.setTextSize(1);
+	//display.print("Archivo:");
+	//display.print(file_name);
+	display.setCursor(58,56);
+  	display.print("OK"); 
+	display.display();
+}
+
+void display_showFechaHora(String VALOR_SEGUNDO, String VALOR_MINUTO, String VALOR_HORA){
+
+display.clearDisplay();
+display.setTextSize(2);
+display.setCursor(0,0);
+display.print(VALOR_HORA);
+display.setCursor(25,0);
+display.print(":");
+display.setCursor(40,0);
+display.print(VALOR_MINUTO);
+display.setCursor(65,0);
+display.print(":");
+display.setCursor(75,0);
+display.print(VALOR_SEGUNDO);
+display.display();
+
+} 

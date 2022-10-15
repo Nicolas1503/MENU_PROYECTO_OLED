@@ -22,3 +22,5 @@ void display_ShowDotiter(uint8_t dot_iter, float dot_count);
 void display_ShowSpeed(int cuenta, float velocidad );
 void display_ShowHeliceSelected(uint8_t helice_num, float value_A, float value_B);
 void display_ShowMedidaGuardada(String file_name);
+void display_ShowMedidaEnviada(void);
+void display_showFechaHora(String VALOR_SEGUNDO, String VALOR_MINUTO, String VALOR_HORA);
