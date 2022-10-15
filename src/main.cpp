@@ -1,19 +1,10 @@
 #include <Arduino.h>
 #include "button.hpp"
-#include "FS.h"
-#include "SD.h"
 #include <Preferences.h> 
 #include "../lib/display/display_mod.h"
-#include <SPI.h>
-#include <Lora.h>
 #include "../lib/rtc/rtc_mod.h"
-
-
-#define ss_lora 5
-#define rst 25
-#define dio0 33
-
-#define ss_SD 15
+#include "../lib/sd/sd_mod.h"
+#include "../lib/lora/lora_mod.h"
 
 #define MAXITEMS 20						//Cantidad de posiciones en el display
 
@@ -151,13 +142,10 @@ void lcd_PrintCursor(Menu_state_e menu_submenu_state, uint8_t start, uint8_t cou
 void IRAM_ATTR isr_helice();
 bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state);
 
-void writeFile(fs::FS &fs, const char * path, const char * message);
-void appendFile(fs::FS &fs, const char * path, const char * message);
-
 Preferences preferences;
 
 
-uint8_t gpio_helice = 34; // Cambiar esto por el valor correcto
+uint8_t gpio_helice = 34;
 int contador_helice = 0;
 
 String SEGUNDO, MINUTO, HORA, DIA_MES, MES, YEAR;
@@ -168,28 +156,15 @@ void setup()
   	Serial.begin(9600);
 	Wire.begin();         // inicializa bus I2C
  	display_begin();
+
+	display_notif("Bienvenido");
+	delay(2000);	
 	
-	if(!SD.begin(ss_SD)){
-        Serial.println("Card Mount Failed");
-        //return;
-    }else{
-		Serial.println("Card Init");
-	}
+	SD_Begin();
 
 	delay(1000);
 
-	LoRa.setPins(ss_lora, rst, dio0);
-	pinMode(ss_lora, OUTPUT);
-	digitalWrite(ss_lora, HIGH);
-	  
-	  if (LoRa.begin(433E6)) {
-		Serial.println("LoRa init succeeded.");
-		LoRa.setSpreadingFactor(12);           // ranges from 6-12,default 7 see API docsLoRa.setSpreadingFactor(12);
-		LoRa.setSignalBandwidth(62.5E3);
-		LoRa.setCodingRate4(8);
-	  }else{
-		Serial.println("Starting LoRa failed!");
-	  }
+	LoRa_begin();
 
 
 estado_actual = AJUSTES;				//Estado actual y anterior en ajustes
@@ -397,7 +372,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				case ATRAS_HELICE_2:
 				{
 					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
+					estado_actual = HELICE_2;
 				}
 				break;
 
@@ -425,7 +400,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 				case ATRAS_HELICE_3:
 				{
 					menu_submenu_state = HELICE_SUBMENU;
-					estado_actual = HELICE_1;
+					estado_actual = HELICE_3;
 				}
 				break;
 
@@ -949,7 +924,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outConstante_B1 = 0;
-						estado_actual = VALOR_A1;
+						estado_actual = VALOR_B1;
 					}
 					break;
 
@@ -1039,7 +1014,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outConstante_B2 = 0;
-						estado_actual = VALOR_A2;
+						estado_actual = VALOR_B2;
 					}
 					break;
 
@@ -1129,7 +1104,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outConstante_B3 = 0;
-						estado_actual = VALOR_A3;
+						estado_actual = VALOR_B3;
 					}
 					break;
 
@@ -1262,7 +1237,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outHelice1 = 0;
-						estado_actual = SELECT_HELICE_1;
+						estado_actual = ATRAS_SELECT_HELICES;
 					}
 					break;
 				}
@@ -1294,7 +1269,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outHelice2 = 0;
-						estado_actual = SELECT_HELICE_1;
+						estado_actual = ATRAS_SELECT_HELICES;
 					}
 					break;
 				}
@@ -1326,7 +1301,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					case ENTER:
 					{
 						outHelice3 = 0;
-						estado_actual = SELECT_HELICE_1;
+						estado_actual = ATRAS_SELECT_HELICES;
 					}
 					break;
 				}
@@ -1353,19 +1328,12 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			MES = leeMes();
 			YEAR = leeAnio();
 
-			File file = SD.open(ID_TITLE.c_str());
-    		if(!file) {
-   			Serial.println("El archivo no existe");
-    		Serial.println("Creando archivo...");
-    		writeFile(SD, ID_TITLE.c_str(), "Velocidad(m/Seg.);Periodo;Helice;Constante A;Constante B;Hora;Fecha\r\n");
-    		}
-    		else {
-    		Serial.println("El archivo ya existe");  
-      		}
-    		file.close();
-
+			SD_OpenFile(ID_TITLE.c_str());
+			
 			DATO_MEDIDO = String(VELOCIDAD)+";"+String(PERIODO_MEDIDO/1000)+";"+String(NUM_HELICE)+";"+String(A)+";"+String (B)+";"+String (HORA)+":"+ String(MINUTO)+":"+String(SEGUNDO)+";"+String(DIA_MES)+"/"+String(MES)+"/"+String(YEAR)+"\r\n";
+			
 			appendFile(SD, ID_TITLE.c_str(), DATO_MEDIDO.c_str());
+			
 			display_ShowMedidaGuardada(ID_TITLE);
 			
 			
@@ -1399,17 +1367,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			move_t buttonProcess = DONTMOVE;
 			int PERIODO_MEDIDO = preferences.getInt("PERIODO_MEMO", 0);
 
-  			// send packet
-  			LoRa.beginPacket();
-			LoRa.print("Velocidad: ");
-  			LoRa.print(VELOCIDAD);
-			LoRa.print(" m/seg. ");
-			LoRa.print("T: ");
-			LoRa.print(PERIODO_MEDIDO/1000);
-			LoRa.print( "seg.");
-			LoRa.print("Helice :");
-			LoRa.print(NUM_HELICE);
-			LoRa.endPacket();
+			LoRa_SendPacket(VELOCIDAD, PERIODO_MEDIDO/1000, NUM_HELICE);
 
 			display_ShowMedidaEnviada();
 			
@@ -1440,40 +1398,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 	
 	}
 	return 0;
-
-	
-}
-
-void writeFile(fs::FS &fs, const char * path, const char * message){
-    Serial.printf("Writing file: %s\n", path);
-
-    File file = fs.open(path, FILE_WRITE);
-    if(!file){
-        Serial.println("Failed to open file for writing");
-        return;
-    }
-    if(file.print(message)){
-        Serial.println("File written");
-    } else {
-        Serial.println("Write failed");
-    }
-    file.close();
-}
-
-void appendFile(fs::FS &fs, const char * path, const char * message){
-    Serial.printf("Appending to file: %s\n", path);
-
-    File file = fs.open(path, FILE_APPEND);
-    if(!file){
-        Serial.println("Failed to open file for appending");
-        return;
-    }
-    if(file.print(message)){
-        Serial.println("Message appended");
-    } else {
-        Serial.println("Append failed");
-    }
-    file.close();
 }
 
 void IRAM_ATTR isr_helice()

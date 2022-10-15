@@ -14,6 +14,7 @@ void display_begin(void);
 void display_clear(void);
 void lcd_ClearOneLine(int row);
 void lcd_ClearCursor(int row);
+void display_notif(String NOTIFICACION);
 void display_background(bool modo_flechas);
 void display_showmenu(String menu_title, String arr);
 void display_showparam(String param_title, float param_value, bool entero, String param_unit);

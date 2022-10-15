@@ -26,6 +26,23 @@ void lcd_ClearCursor(int row){
 	display.display(); 
 }
 
+void display_notif(String NOTIFICACION){
+
+	display.clearDisplay();      // limpia pantalla      
+  	display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
+	display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
+	display.setCursor(0,0);
+	display.setTextSize(1);
+  	display.setTextColor(WHITE);
+	display.print("Cargando...");
+	display.setCursor(0, 17);   // ubica cursor en coordenadas 0,14
+	display.setTextSize(2);      // establece tamano de texto en 2
+	display.print(NOTIFICACION);										//Muestra solo el array del menu principal
+	display.display(); 							//Muestra solo el array del menu principal
+
+}
+
+
 void display_background(bool modo_flechas){
 
 	display.clearDisplay();      // limpia pantalla      
