@@ -1183,13 +1183,12 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			move_t buttonProcess = DONTMOVE;
 			
 			HORA = leeHora();
-			MINUTO = leeMinuto();
-			SEGUNDO = leeSegundo();
+			MINUTO = leeMinuto();		
 			DIA_MES = leeDiaMes();
 			MES = leeMes();
 			YEAR = leeAnio();
 
-			display_showFechaHora(SEGUNDO, MINUTO, HORA);
+			display_showFechaHora(HORA, MINUTO, DIA_MES, MES, YEAR);
 			
 			while(outFecha_Hora)
 			{

@@ -213,20 +213,31 @@ void display_ShowMedidaEnviada(void){
 	display.display();
 }
 
-void display_showFechaHora(String VALOR_SEGUNDO, String VALOR_MINUTO, String VALOR_HORA){
+void display_showFechaHora(String VALOR_HORA, String VALOR_MINUTO, String VALOR_DIA, String VALOR_MES, String VALOR_ANIO){
 
 display.clearDisplay();
+display.drawLine(0, 10, 128, 10, WHITE); // dibuja linea
+display.drawLine(0, 54, 128, 54, WHITE); // dibuja linea 
 display.setTextSize(2);
-display.setCursor(0,0);
+display.setCursor(30,15);
 display.print(VALOR_HORA);
-display.setCursor(25,0);
+display.setCursor(55,15);
 display.print(":");
-display.setCursor(40,0);
+display.setCursor(70,15);
 display.print(VALOR_MINUTO);
-display.setCursor(65,0);
-display.print(":");
-display.setCursor(75,0);
-display.print(VALOR_SEGUNDO);
+display.setCursor(10,35);
+display.print(VALOR_DIA);
+display.setCursor(35,35);
+display.print("/");
+display.setCursor(50,35);
+display.print(VALOR_MES);
+display.setCursor(75,35);
+display.print("/");
+display.setCursor(90,35);
+display.print(VALOR_ANIO);
+display.setTextSize(1);
+display.setCursor(58,56);
+display.print("OK"); 
 display.display();
 
 } 
