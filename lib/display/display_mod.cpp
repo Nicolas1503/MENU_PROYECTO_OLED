@@ -14,6 +14,7 @@ void display_clear(void){
 void lcd_ClearOneLine(int row){
 	for(uint8_t i=0; i < COLNUM ; i++)
 	{
+		display.clearDisplay();
 		display.setCursor(i,row);
 		display.print(" ");
 		display.display(); 
