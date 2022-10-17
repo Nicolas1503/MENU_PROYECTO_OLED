@@ -138,6 +138,7 @@ void display_MedicionMode(uint8_t helice_num,int periodo){
 		}
 }
 
+
 void display_ShowSpeed(int cuenta, float velocidad ){
 
 	display.clearDisplay(); 

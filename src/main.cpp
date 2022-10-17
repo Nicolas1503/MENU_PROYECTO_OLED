@@ -784,6 +784,7 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 					if(timedone == dotcount)
 					{
 						display_ShowDotiter(dotiter, dotcount);
+						
 					}
 				}
 				buttonProcess = ENTER;
