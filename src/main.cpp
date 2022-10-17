@@ -757,8 +757,6 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 			bool buttonOut = 1;
 			while(buttonProcess != ENTER)								//Me aparto del codigo principal mientras el boton sea distinto de enter
 			{
-				float dotcount = 1000.0;
-				uint8_t dotiter = 0;
 				
 				/* Muestro el periodo en segundos*/
 				int periodo = preferences.getInt("PERIODO_MEMO", 0);
@@ -767,6 +765,10 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 				
 				unsigned long lastmillis = millis();
 				unsigned long timedone = 0; 		//Se le asigna el tiempo transcurrido dentro del while loop siguiente
+
+				float dotcount = 1000.0;
+				uint8_t dotiter = 0;
+				float speed = periodo/24;
 
 				contador_helice = 0; // Pongo en 0 el contador de pulsos
 				attachInterrupt(digitalPinToInterrupt(gpio_helice), isr_helice, FALLING); // Habilita la interrupcion que va a contar los pulsos
@@ -783,10 +785,13 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 						Esto es solo un ejemplo */
 					if(timedone == dotcount)
 					{
-						display_ShowDotiter(dotiter, dotcount);
-						
+						display_ShowDot(dotiter);
+						dotcount = dotcount + speed;
+						dotiter = dotiter + 5;
 					}
+						
 				}
+
 				buttonProcess = ENTER;
 				detachInterrupt(digitalPinToInterrupt(gpio_helice)); // Deshabilita la interrupcion y deja de contar pulsos
 				

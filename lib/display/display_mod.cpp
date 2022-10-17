@@ -104,9 +104,9 @@ void display_showparam(String param_title, float param_value, bool entero, Strin
 void display_MedicionMode(uint8_t helice_num,int periodo){
 	
 	display.clearDisplay();
-	display.drawRect(0, 0, 128, 56, WHITE);
+	display.drawRect(0, 0, 128, 64, WHITE);
 	display.drawLine(0, 18, 128, 18, WHITE);
-	display.drawLine(0, 57, 128, 57, WHITE);
+	display.drawLine(0, 55, 128, 55, WHITE);
 	display.setCursor(2,2);
 	display.setTextSize(2);
   	display.setTextColor(WHITE);
@@ -121,21 +121,12 @@ void display_MedicionMode(uint8_t helice_num,int periodo){
 	display.display();
 }
 
-	void display_ShowDotiter(uint8_t dot_iter, float dot_count){
-	display.setCursor(dot_iter,48);
-	display.setTextSize(2);
-  	display.setTextColor(WHITE);
-	display.print(".");
-	dot_count = dot_count + 1000.0;
-	display.display();
-	if(dot_iter < 128)
-	{
-		dot_iter = dot_iter + 5;
-	}
-	else{
-			lcd_ClearOneLine(1);
-			dot_iter = 0;
-		}
+	void display_ShowDot(uint8_t dot_iter){
+		display.setCursor(dot_iter,47);
+		display.setTextSize(2);
+  		display.setTextColor(WHITE);
+		display.print(".");
+		display.display();
 }
 
 
