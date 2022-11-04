@@ -150,6 +150,7 @@ int contador_helice = 0;
 
 String SEGUNDO, MINUTO, HORA, DIA_MES, MES, YEAR;
 
+unsigned long tAnterior = 0;  
 
 void setup()
 {
@@ -1407,5 +1408,10 @@ bool StateMachine_Control(uint8_t Menu, Menu_state_e menu_submenu_state)
 
 void IRAM_ATTR isr_helice()
 {
+	if(((millis() - tAnterior) > 100)){
 	contador_helice++;
+	}
+
+tAnterior = millis();
+	
 }
