@@ -19,8 +19,8 @@
 
 
 /*Matriz de dos dimensiones para definir los menues*/
-const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion","  Ultimas   Medidas"};
-const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Buzzer","  Atras"};
+const char menu[MAINMENU_NUM][MAXITEMS] = {"  Ajustes"," Medicion"};
+const char ajustes[AJUSTES_NUM][MAXITEMS] = {"  Config.   Helices","  Config.   Periodo","  Ref. de    Lugar","  Fecha y     Hora","  Atras"};
 const char medicion[MEDICION_NUM][MAXITEMS] = {"  Elegir    Helice","  Inicio","  Guardar  Medicion", "  Enviar   Medicion", "Atras"};
 const char helicemed[SELECT_HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
 const char helice[HELICE_NUM][MAXITEMS] = {"Helice 1", "Helice 2", "Helice 3", "Atras"};
@@ -34,50 +34,48 @@ const char helice3[HELICE3_NUM][MAXITEMS] = {"Valor A", "Valor B", "Atras"};
 #define	OUT 1
 #define AJUSTES 2
 #define MEDICION 3
-#define ULT_MEDIDAS 4
-#define CFG_HELICES 5
-#define CFG_PERIODO 6
-#define REF_LUGAR 7
-#define FECHA_HORA 8
-#define BUZZER 9
-#define ATRAS_AJUSTES 10
-#define SELECT_HELICES 11
-#define INICIO_MEDICION 12
-#define GUARDAR_MEDICION 13
-#define ENVIAR_MEDICION 14
-#define ATRAS_MEDICION 15
-#define SELECT_HELICE_1 16
-#define SELECT_HELICE_2 17
-#define SELECT_HELICE_3 18
-#define ATRAS_SELECT_HELICES 19
-#define SET_HELICE_1 20
-#define SET_HELICE_2 21
-#define SET_HELICE_3 22
-#define TOMAR_MEDICION 23
-#define TOMAR_PERIODO 24
-#define HELICE_1 25
-#define HELICE_2 26
-#define HELICE_3 27
-#define ATRAS_HELICE 28
-#define VALOR_A1 29
-#define VALOR_B1 30
-#define ATRAS_HELICE_1 31
-#define SET_VALOR_A1 32
-#define SET_VALOR_B1 33
-#define VALOR_A2 34
-#define VALOR_B2 35
-#define ATRAS_HELICE_2 36
-#define SET_VALOR_A2 37
-#define SET_VALOR_B2 38
-#define VALOR_A3 39
-#define VALOR_B3 40
-#define ATRAS_HELICE_3 41
-#define SET_VALOR_A3 42
-#define SET_VALOR_B3 43
-#define SET_REF_LUGAR 44
-#define SET_GUARDAR_MEDICION 45
-#define SET_ENVIAR_MEDICION 46
-#define SET_FECHA_HORA 47
+#define CFG_HELICES 4
+#define CFG_PERIODO 5
+#define REF_LUGAR 6
+#define FECHA_HORA 7
+#define ATRAS_AJUSTES 8
+#define SELECT_HELICES 9
+#define INICIO_MEDICION 10
+#define GUARDAR_MEDICION 11
+#define ENVIAR_MEDICION 12
+#define ATRAS_MEDICION 13
+#define SELECT_HELICE_1 14
+#define SELECT_HELICE_2 15
+#define SELECT_HELICE_3 16
+#define ATRAS_SELECT_HELICES 17
+#define SET_HELICE_1 18
+#define SET_HELICE_2 19
+#define SET_HELICE_3 20
+#define TOMAR_MEDICION 21
+#define TOMAR_PERIODO 22
+#define HELICE_1 23
+#define HELICE_2 24
+#define HELICE_3 25
+#define ATRAS_HELICE 26
+#define VALOR_A1 27
+#define VALOR_B1 28
+#define ATRAS_HELICE_1 29
+#define SET_VALOR_A1 30
+#define SET_VALOR_B1 31
+#define VALOR_A2 32
+#define VALOR_B2 33
+#define ATRAS_HELICE_2 34
+#define SET_VALOR_A2 35
+#define SET_VALOR_B2 36
+#define VALOR_A3 37
+#define VALOR_B3 38
+#define ATRAS_HELICE_3 39
+#define SET_VALOR_A3 40
+#define SET_VALOR_B3 41
+#define SET_REF_LUGAR 42
+#define SET_GUARDAR_MEDICION 43
+#define SET_ENVIAR_MEDICION 44
+#define SET_FECHA_HORA 45
 
 
 uint8_t NUM_HELICE = 0;
@@ -217,7 +215,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 {
 	static move_t lastButtonProcess = DONTMOVE;		//Variables que quedan fijas segun el ultimo llamado de la funcion
 	static uint8_t firstMenu = AJUSTES;
-	static uint8_t lastMenu = ULT_MEDIDAS;
+	static uint8_t lastMenu = MEDICION;
 	static Menu_state_e lastMenuState = MAIN;
 
 	buttonProcess = CheckButton();					//Aqui se recibe, UP, DOWN, ENTER O DONT MOVE
@@ -456,7 +454,7 @@ bool lcd_UpdateCursor(uint8_t Menu, int row, int col) //Dentro de esta funcion e
 		{
 		case MAIN: 
 			firstMenu = AJUSTES;
-			lastMenu = ULT_MEDIDAS; 
+			lastMenu = MEDICION; 
 			break;
 		case AJUSTES_SUBMENU: 
 			firstMenu = CFG_HELICES;
@@ -519,12 +517,6 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-		case ULT_MEDIDAS:
-		{
-			lcd_PrintCursor(menu_submenu_state,2,1);
-		}
-		break;
-
 		case CFG_HELICES:
 		{
 			lcd_PrintCursor(menu_submenu_state,0,1);
@@ -549,15 +541,9 @@ void lcd_DisplayMenu(uint8_t Menu, Menu_state_e menu_submenu_state)		//Funcion q
 		}
 		break;
 
-		case BUZZER:
-		{
-			lcd_PrintCursor(menu_submenu_state,4,1);
-		}
-		break;
-
 		case ATRAS_AJUSTES:
 		{
-			lcd_PrintCursor(menu_submenu_state,5,1);
+			lcd_PrintCursor(menu_submenu_state,4,1);
 		}
 		break;
 
